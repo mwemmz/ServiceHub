@@ -1,65 +1,85 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
-import '@/global.css';
-
-import { Platform } from 'react-native';
+import { Platform, type ViewStyle } from 'react-native';
 
 export const Colors = {
-  light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+  background: '#F8F4F0',
+  cream: '#FBF7F2',
+  surface: '#FFFFFF',
+  charcoal: '#2C2420',
+  text: '#2C2420',
+  textMuted: '#7A7068',
+  textLight: '#A39890',
+  accent: '#C67C4E',
+  accentDark: '#A65D35',
+  accentSoft: '#F3E4D8',
+  border: '#E8E0D8',
+  success: '#3D8B6E',
+  error: '#C45C4A',
+  warning: '#D4A017',
+  star: '#E8B84A',
+  overlay: 'rgba(44, 36, 32, 0.45)',
+  beauty: {
+    background: '#F8E4E0',
+    accent: '#D97B78',
+    icon: '#C45C5A',
   },
-  dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+  repair: {
+    background: '#D9E6F2',
+    accent: '#5B8FB8',
+    icon: '#3E739C',
+  },
+  cleaning: {
+    background: '#DCEBD8',
+    accent: '#6AA36A',
+    icon: '#4E8A4E',
   },
 } as const;
-
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
-
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
-  },
-});
 
 export const Spacing = {
-  half: 2,
-  one: 4,
-  two: 8,
-  three: 16,
-  four: 24,
-  five: 32,
-  six: 64,
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  xxl: 32,
 } as const;
 
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;
+export const Radii = {
+  sm: 10,
+  md: 14,
+  lg: 20,
+  xl: 28,
+  full: 999,
+} as const;
+
+export const Shadows: { card: ViewStyle; floating: ViewStyle } = {
+  card: Platform.select<ViewStyle>({
+    web: { boxShadow: '0px 6px 16px rgba(44, 36, 32, 0.08)' },
+    default: {
+      shadowColor: '#2C2420',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.08,
+      shadowRadius: 16,
+      elevation: 3,
+    },
+  })!,
+  floating: Platform.select<ViewStyle>({
+    web: { boxShadow: '0px 10px 20px rgba(44, 36, 32, 0.12)' },
+    default: {
+      shadowColor: '#2C2420',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.12,
+      shadowRadius: 20,
+      elevation: 6,
+    },
+  })!,
+};
+
+export const FontSize = {
+  xs: 11,
+  sm: 13,
+  md: 15,
+  lg: 17,
+  xl: 22,
+  xxl: 28,
+  hero: 32,
+} as const;
