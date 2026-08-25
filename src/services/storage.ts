@@ -59,4 +59,5 @@ export const StorageKeys = {
   resetCodes: 'servicehub.resetCodes',
   verifyCodes: 'servicehub.verifyCodes',
   seeded: 'servicehub.seeded',
+  providerApplications: 'servicehub.providerApplications',
 } as const;

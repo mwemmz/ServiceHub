@@ -1,7 +1,5 @@
-import { type ReactNode } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, Spacing } from '@/constants/theme';
+import type { ReactNode } from 'react';
+import { AppShell } from '@/components/AppShell';
 
 interface Props {
   children: ReactNode;
@@ -9,30 +7,11 @@ interface Props {
   padded?: boolean;
 }
 
+/** App screen wrapper — uses shared Create Account visual shell. */
 export function Screen({ children, scroll, padded = true }: Props) {
-  if (scroll) {
-    return (
-      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-        <ScrollView
-          contentContainerStyle={[styles.content, padded && styles.padded]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}>
-          {children}
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <View style={[styles.fill, padded && styles.padded]}>{children}</View>
-    </SafeAreaView>
+    <AppShell scroll={!!scroll} padded={padded} edges={['top', 'left', 'right', 'bottom']}>
+      {children}
+    </AppShell>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
-  fill: { flex: 1 },
-  content: { paddingBottom: 32 },
-  padded: { paddingHorizontal: Spacing.lg },
-});

@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View, type KeyboardTypeOptions } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  type KeyboardTypeOptions,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, Radii } from '@/constants/theme';
 
@@ -17,6 +25,7 @@ interface Props {
   multiline?: boolean;
 }
 
+/** Glass input — same language as Create Account RegField. */
 export function InputField({
   label,
   value,
@@ -31,27 +40,41 @@ export function InputField({
   multiline,
 }: Props) {
   const [hidden, setHidden] = useState(secureTextEntry);
+  const [focused, setFocused] = useState(false);
 
   return (
     <View style={styles.wrap}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
-      <View style={[styles.field, error && styles.fieldError, !editable && styles.disabled]}>
-        {icon ? <Ionicons name={icon} size={20} color={Colors.textMuted} /> : null}
+      <View
+        style={[
+          styles.field,
+          focused && styles.fieldFocused,
+          error && styles.fieldError,
+          !editable && styles.disabled,
+        ]}>
+        {icon ? <Ionicons name={icon} size={20} color={Colors.accent} /> : null}
         <TextInput
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={Colors.textLight}
+          placeholderTextColor="rgba(255,255,255,0.4)"
           secureTextEntry={hidden}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
           editable={editable}
           multiline={multiline}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          underlineColorAndroid="transparent"
+          selectionColor="rgba(255,255,255,0.35)"
           style={[styles.input, multiline && styles.multiline]}
+          {...(Platform.OS === 'web'
+            ? ({ outlineStyle: 'none', outlineWidth: 0 } as object)
+            : {})}
         />
         {secureTextEntry ? (
-          <Pressable onPress={() => setHidden((value) => !value)} accessibilityLabel="Toggle password visibility">
-            <Ionicons name={hidden ? 'eye-outline' : 'eye-off-outline'} size={20} color={Colors.textMuted} />
+          <Pressable onPress={() => setHidden((v) => !v)} accessibilityLabel="Toggle password visibility">
+            <Ionicons name={hidden ? 'eye-outline' : 'eye-off-outline'} size={20} color={Colors.accent} />
           </Pressable>
         ) : null}
       </View>
@@ -62,21 +85,32 @@ export function InputField({
 
 const styles = StyleSheet.create({
   wrap: { gap: 6 },
-  label: { color: Colors.charcoal, fontSize: FontSize.sm, fontWeight: '600' },
+  label: { color: Colors.whiteSoft, fontSize: FontSize.sm, fontWeight: '600' },
   field: {
-    minHeight: 54,
+    minHeight: 50,
     borderRadius: Radii.md,
     borderWidth: 1,
     borderColor: Colors.border,
-    backgroundColor: Colors.surface,
+    backgroundColor: 'rgba(255,255,255,0.08)',
     paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  fieldError: { borderColor: Colors.error },
-  input: { flex: 1, color: Colors.charcoal, fontSize: FontSize.md, paddingVertical: 12 },
+  fieldFocused: {
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderColor: 'rgba(255,255,255,0.75)',
+  },
+  fieldError: { borderColor: 'rgba(255,138,122,0.9)' },
+  input: {
+    flex: 1,
+    color: Colors.charcoal,
+    fontSize: FontSize.md,
+    paddingVertical: 12,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+  },
   multiline: { minHeight: 90, textAlignVertical: 'top' },
   error: { color: Colors.error, fontSize: FontSize.sm },
-  disabled: { backgroundColor: Colors.cream },
+  disabled: { opacity: 0.55 },
 });

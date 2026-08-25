@@ -121,6 +121,16 @@ export const SEED_USERS: Omit<User, 'passwordHash'>[] = [
     location: LOCATIONS.olympia,
   },
   {
+    id: 'user-provider-james',
+    fullName: 'James Banda',
+    email: 'james@servicehub.zm',
+    phone: '+260 96 222 0011',
+    role: 'provider',
+    isVerified: true,
+    createdAt: '2026-03-01T08:00:00.000Z',
+    location: LOCATIONS.roma,
+  },
+  {
     id: 'user-provider-joseph',
     fullName: 'Joseph Tembo',
     email: 'joseph@servicehub.zm',
@@ -200,10 +210,10 @@ export const SEED_PROVIDERS: ProviderProfile[] = [
     earningsThisWeek: 1850,
     services: [
       { serviceId: 'beauty-makeup', price: 200, durationMinutes: 75 },
-      { serviceId: 'beauty-bridal-makeup', price: 450, durationMinutes: 120 },
-      { serviceId: 'beauty-event-makeup', price: 250, durationMinutes: 80 },
-      { serviceId: 'beauty-haircuts', price: 90, durationMinutes: 45 },
+      { serviceId: 'beauty-styling', price: 120, durationMinutes: 60 },
+      { serviceId: 'beauty-eyelashes', price: 220, durationMinutes: 90 },
       { serviceId: 'beauty-manicure', price: 80, durationMinutes: 45 },
+      { serviceId: 'beauty-facials', price: 180, durationMinutes: 60 },
     ],
   },
   {
@@ -224,9 +234,9 @@ export const SEED_PROVIDERS: ProviderProfile[] = [
     services: [
       { serviceId: 'beauty-braiding', price: 320, durationMinutes: 180 },
       { serviceId: 'beauty-cornrows', price: 180, durationMinutes: 90 },
-      { serviceId: 'beauty-haircuts', price: 85, durationMinutes: 40 },
-      { serviceId: 'beauty-natural', price: 160, durationMinutes: 75 },
+      { serviceId: 'beauty-treatment', price: 200, durationMinutes: 75 },
       { serviceId: 'beauty-dyeing', price: 260, durationMinutes: 120 },
+      { serviceId: 'beauty-extensions', price: 350, durationMinutes: 150 },
     ],
   },
   {
@@ -247,11 +257,35 @@ export const SEED_PROVIDERS: ProviderProfile[] = [
     portfolioUris: [],
     earningsThisWeek: 960,
     services: [
-      { serviceId: 'beauty-gel-nails', price: 150, durationMinutes: 70 },
-      { serviceId: 'beauty-acrylic', price: 190, durationMinutes: 90 },
+      { serviceId: 'beauty-nail-art', price: 120, durationMinutes: 60 },
+      { serviceId: 'beauty-manicure', price: 90, durationMinutes: 45 },
       { serviceId: 'beauty-pedicure', price: 110, durationMinutes: 50 },
       { serviceId: 'beauty-facials', price: 180, durationMinutes: 60 },
-      { serviceId: 'beauty-eyelashes', price: 220, durationMinutes: 90 },
+      { serviceId: 'beauty-skincare', price: 200, durationMinutes: 70 },
+    ],
+  },
+  {
+    userId: 'user-provider-james',
+    bio: 'Barber offering fades, tapers, beard work and mens grooming at your place.',
+    categoryId: 'beauty',
+    yearsOfExperience: 6,
+    isOnline: true,
+    isSetupComplete: true,
+    serviceArea: 'Roma, CBD and Woodlands',
+    location: LOCATIONS.roma,
+    availability: WEEKLY_AVAILABILITY,
+    rating: 4.9,
+    reviewCount: 112,
+    completedJobs: 240,
+    portfolioUris: [],
+    earningsThisWeek: 1680,
+    services: [
+      { serviceId: 'beauty-haircuts', price: 70, durationMinutes: 40 },
+      { serviceId: 'beauty-fade', price: 80, durationMinutes: 45 },
+      { serviceId: 'beauty-taper', price: 75, durationMinutes: 40 },
+      { serviceId: 'beauty-beard-trim', price: 50, durationMinutes: 25 },
+      { serviceId: 'beauty-shave', price: 60, durationMinutes: 30 },
+      { serviceId: 'beauty-mens-grooming', price: 150, durationMinutes: 60 },
     ],
   },
   {
@@ -272,9 +306,8 @@ export const SEED_PROVIDERS: ProviderProfile[] = [
     services: [
       { serviceId: 'cleaning-general', price: 180, durationMinutes: 120 },
       { serviceId: 'cleaning-deep', price: 350, durationMinutes: 240 },
-      { serviceId: 'cleaning-kitchen', price: 150, durationMinutes: 90 },
-      { serviceId: 'cleaning-bathroom', price: 130, durationMinutes: 75 },
       { serviceId: 'cleaning-office', price: 250, durationMinutes: 150 },
+      { serviceId: 'cleaning-laundry', price: 100, durationMinutes: 90 },
     ],
   },
   {
@@ -295,8 +328,8 @@ export const SEED_PROVIDERS: ProviderProfile[] = [
     services: [
       { serviceId: 'cleaning-maid', price: 200, durationMinutes: 180 },
       { serviceId: 'cleaning-laundry', price: 100, durationMinutes: 90 },
-      { serviceId: 'cleaning-household', price: 160, durationMinutes: 120 },
-      { serviceId: 'cleaning-sofa', price: 180, durationMinutes: 80 },
+      { serviceId: 'cleaning-general', price: 160, durationMinutes: 120 },
+      { serviceId: 'cleaning-deep', price: 320, durationMinutes: 200 },
     ],
   },
   {
@@ -339,7 +372,7 @@ export const SEED_PROVIDERS: ProviderProfile[] = [
     services: [
       { serviceId: 'repair-phone', price: 150, durationMinutes: 60 },
       { serviceId: 'repair-laptop', price: 250, durationMinutes: 90 },
-      { serviceId: 'repair-tablet', price: 180, durationMinutes: 75 },
+      { serviceId: 'repair-tv', price: 300, durationMinutes: 120 },
       { serviceId: 'repair-computer', price: 220, durationMinutes: 90 },
     ],
   },
@@ -361,8 +394,8 @@ export const SEED_PROVIDERS: ProviderProfile[] = [
     services: [
       { serviceId: 'repair-plumbing', price: 200, durationMinutes: 80 },
       { serviceId: 'repair-electrical', price: 180, durationMinutes: 75 },
-      { serviceId: 'repair-heater', price: 220, durationMinutes: 80 },
-      { serviceId: 'repair-door', price: 140, durationMinutes: 60 },
+      { serviceId: 'repair-home', price: 150, durationMinutes: 70 },
+      { serviceId: 'repair-other', price: 140, durationMinutes: 60 },
     ],
   },
   {
@@ -384,7 +417,7 @@ export const SEED_PROVIDERS: ProviderProfile[] = [
       { serviceId: 'repair-fridge', price: 250, durationMinutes: 90 },
       { serviceId: 'repair-washer', price: 230, durationMinutes: 90 },
       { serviceId: 'repair-ac', price: 280, durationMinutes: 90 },
-      { serviceId: 'repair-microwave', price: 150, durationMinutes: 60 },
+      { serviceId: 'repair-appliance', price: 200, durationMinutes: 80 },
     ],
   },
 ];

@@ -29,7 +29,7 @@ export function AppTabBar({ items, activeKey, onChange, onCenterPress, centerIco
         <TabButton key={item.key} item={item} active={item.key === activeKey} onPress={() => onChange(item.key)} />
       ))}
       <Pressable onPress={onCenterPress} style={styles.center} accessibilityLabel="New request">
-        <Ionicons name={centerIcon} size={28} color="#FFFFFF" />
+        <Ionicons name={centerIcon} size={28} color={Colors.onAccent} />
       </Pressable>
       {right.map((item) => (
         <TabButton key={item.key} item={item} active={item.key === activeKey} onPress={() => onChange(item.key)} />
@@ -56,7 +56,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-around',
-    backgroundColor: Colors.surface,
+    backgroundColor: 'rgba(16,22,42,0.92)',
+    borderTopWidth: 1,
+    borderColor: Colors.border,
     paddingTop: 10,
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,

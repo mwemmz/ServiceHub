@@ -29,9 +29,11 @@ export function BookingCard({ booking, serviceName, counterpartName, onPress }: 
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     borderRadius: Radii.lg,
     padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
     ...Shadows.card,
   },
   pressed: { opacity: 0.92 },

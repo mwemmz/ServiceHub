@@ -9,25 +9,31 @@ interface Props {
   subtitle?: string;
   onBack?: () => void;
   right?: ReactNode;
+  /** When false, hide the back control (e.g. tab roots). */
+  showBack?: boolean;
 }
 
-export function ScreenHeader({ title, subtitle, onBack, right }: Props) {
+export function ScreenHeader({ title, subtitle, onBack, right, showBack = true }: Props) {
   const router = useRouter();
   return (
     <View style={styles.wrap}>
-      <Pressable
-        onPress={onBack ?? (() => router.back())}
-        style={styles.back}
-        accessibilityRole="button"
-        accessibilityLabel="Go back">
-        <Ionicons name="chevron-back" size={22} color={Colors.charcoal} />
-      </Pressable>
+      {showBack ? (
+        <Pressable
+          onPress={onBack ?? (() => router.back())}
+          style={styles.back}
+          accessibilityRole="button"
+          accessibilityLabel="Go back">
+          <Text style={styles.backLabel}>Back</Text>
+        </Pressable>
+      ) : (
+        <View style={styles.spacer} />
+      )}
       <View style={styles.center}>
-        <Text style={styles.title} numberOfLines={1}>
+        <Text style={styles.title} numberOfLines={2}>
           {title}
         </Text>
         {subtitle ? (
-          <Text style={styles.subtitle} numberOfLines={1}>
+          <Text style={styles.subtitle} numberOfLines={2}>
             {subtitle}
           </Text>
         ) : null}
@@ -38,17 +44,12 @@ export function ScreenHeader({ title, subtitle, onBack, right }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, gap: 8 },
-  back: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  center: { flex: 1 },
-  title: { color: Colors.charcoal, fontSize: FontSize.lg, fontWeight: '800' },
-  subtitle: { color: Colors.textMuted, fontSize: FontSize.xs, marginTop: 1 },
-  right: { minWidth: 40, alignItems: 'flex-end' },
+  wrap: { gap: 6, paddingVertical: 8 },
+  back: { alignSelf: 'flex-start', paddingVertical: 4 },
+  backLabel: { color: Colors.accent, fontWeight: '700', fontSize: 15 },
+  spacer: { height: 8 },
+  center: { gap: 4 },
+  title: { color: Colors.charcoal, fontSize: 26, fontWeight: '800' },
+  subtitle: { color: Colors.whiteSoft, fontSize: FontSize.sm, lineHeight: 20 },
+  right: { position: 'absolute', right: 0, top: 8 },
 });

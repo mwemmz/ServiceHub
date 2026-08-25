@@ -8,6 +8,7 @@ interface Props {
   style?: ViewStyle;
 }
 
+/** Matches Create Account secondary / glass outline CTA. */
 export function SecondaryButton({ label, onPress, disabled, style }: Props) {
   return (
     <Pressable
@@ -22,20 +23,20 @@ export function SecondaryButton({ label, onPress, disabled, style }: Props) {
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: Colors.surface,
-    minHeight: 54,
-    borderRadius: Radii.lg,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    minHeight: 48,
+    borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     borderWidth: 1,
     borderColor: Colors.border,
   },
   label: {
-    color: Colors.charcoal,
-    fontSize: FontSize.lg,
+    color: Colors.whiteSoft,
+    fontSize: FontSize.md,
     fontWeight: '700',
   },
-  disabled: { opacity: 0.55 },
+  disabled: { opacity: 0.5 },
   pressed: { opacity: 0.88 },
 });

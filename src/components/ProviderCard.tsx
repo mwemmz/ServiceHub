@@ -40,11 +40,13 @@ export function ProviderCard({ item, serviceName, onPress }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     borderRadius: Radii.lg,
     padding: 14,
     flexDirection: 'row',
     gap: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
     ...Shadows.card,
   },
   pressed: { opacity: 0.92 },

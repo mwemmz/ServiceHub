@@ -9,6 +9,7 @@ interface Props {
   style?: ViewStyle;
 }
 
+/** Matches Create Account primary CTA (champagne gold pill). */
 export function PrimaryButton({ label, onPress, disabled, loading, style }: Props) {
   return (
     <Pressable
@@ -21,7 +22,11 @@ export function PrimaryButton({ label, onPress, disabled, loading, style }: Prop
         pressed && styles.pressed,
         style,
       ]}>
-      {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.label}>{label}</Text>}
+      {loading ? (
+        <ActivityIndicator color={Colors.onAccent} />
+      ) : (
+        <Text style={styles.label}>{label}</Text>
+      )}
     </Pressable>
   );
 }
@@ -29,17 +34,17 @@ export function PrimaryButton({ label, onPress, disabled, loading, style }: Prop
 const styles = StyleSheet.create({
   button: {
     backgroundColor: Colors.accent,
-    minHeight: 54,
-    borderRadius: Radii.lg,
+    minHeight: 52,
+    borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
   label: {
-    color: '#FFFFFF',
-    fontSize: FontSize.lg,
-    fontWeight: '700',
+    color: Colors.onAccent,
+    fontSize: FontSize.md,
+    fontWeight: '800',
   },
-  disabled: { opacity: 0.55 },
-  pressed: { opacity: 0.88 },
+  disabled: { opacity: 0.45 },
+  pressed: { opacity: 0.9 },
 });

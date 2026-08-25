@@ -21,7 +21,7 @@ export function CategoryCard({ category, onPress }: Props) {
         {category.description}
       </Text>
       <View style={[styles.arrow, { backgroundColor: category.accent }]}>
-        <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+        <Ionicons name="arrow-forward" size={16} color={Colors.onAccent} />
       </View>
     </Pressable>
   );

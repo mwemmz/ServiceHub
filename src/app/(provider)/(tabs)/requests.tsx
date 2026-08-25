@@ -1,11 +1,11 @@
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppShell } from '@/components/AppShell';
 import { BookingCard } from '@/components/BookingCard';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { LoadingState } from '@/components/LoadingState';
-import { Colors, FontSize, Spacing } from '@/constants/theme';
+import { Colors, FontSize } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useAsyncData } from '@/hooks/useAsyncData';
 import { getBookingsForUser } from '@/services/bookingService';
@@ -28,13 +28,25 @@ export default function ProviderRequests() {
     );
   }, [user?.id]);
 
-  if (loading && !data) return <LoadingState />;
-  if (error || !data) return <ErrorState message={error ?? undefined} onRetry={reload} />;
+  if (loading && !data) {
+    return (
+      <AppShell scroll={false} edges={['top']}>
+        <LoadingState />
+      </AppShell>
+    );
+  }
+  if (error || !data) {
+    return (
+      <AppShell scroll={false} edges={['top']}>
+        <ErrorState message={error ?? undefined} onRetry={reload} />
+      </AppShell>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <AppShell edges={['top']}>
       <Text style={styles.title}>Requests</Text>
-      <ScrollView contentContainerStyle={styles.list}>
+      <View style={styles.list}>
         {data.length === 0 ? (
           <EmptyState title="No new requests" message="New customer requests will appear here." />
         ) : (
@@ -48,13 +60,12 @@ export default function ProviderRequests() {
             />
           ))
         )}
-      </ScrollView>
-    </SafeAreaView>
+      </View>
+    </AppShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background, paddingHorizontal: Spacing.lg },
   title: { color: Colors.charcoal, fontSize: FontSize.xxl, fontWeight: '800', marginTop: 8, marginBottom: 12 },
-  list: { gap: 12, paddingBottom: 32 },
+  list: { gap: 12 },
 });
