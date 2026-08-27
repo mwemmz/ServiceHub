@@ -19,7 +19,7 @@ export default function CustomerProfile() {
         <Text style={styles.meta}>{user?.email}</Text>
         <Text style={styles.meta}>{user?.phone}</Text>
       </View>
-      <GlassPanel borderRadius={24} style={styles.panel}>
+      <GlassPanel borderRadius={24} contentStyle={styles.panel}>
         <Row icon="location-outline" label="Saved locations" onPress={() => router.push('/(customer)/location')} />
         <Row icon="calendar-outline" label="Booking history" onPress={() => router.push('/(customer)/(tabs)/bookings')} />
         <Row icon="notifications-outline" label="Notifications" onPress={() => router.push('/(customer)/(tabs)/notifications')} />

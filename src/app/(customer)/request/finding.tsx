@@ -40,7 +40,7 @@ export default function FindingProviderScreen() {
         {draft?.location?.address ?? 'your selected location'}.
       </Text>
 
-      <GlassPanel borderRadius={24} style={styles.panel}>
+      <GlassPanel borderRadius={24} contentStyle={styles.panel}>
         <Text style={styles.cardTitle}>Request status</Text>
         <Text style={styles.status}>Pending</Text>
         <Text style={styles.cardBody}>

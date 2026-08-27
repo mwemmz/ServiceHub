@@ -78,7 +78,7 @@ export default function EstimateScreen() {
       <Text style={styles.title}>Service request</Text>
       <Text style={styles.sub}>Review the estimate, then request a provider.</Text>
 
-      <GlassPanel borderRadius={24} style={styles.panel}>
+      <GlassPanel borderRadius={24} contentStyle={styles.panel}>
         <Row label="Service requested" value={draft.serviceName} />
         <Row label="Service category" value={draft.categoryName} />
         <Row label="Service location" value={draft.location.address} />

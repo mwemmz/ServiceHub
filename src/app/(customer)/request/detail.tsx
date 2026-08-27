@@ -60,7 +60,7 @@ export default function RequestServiceDetailScreen() {
       <Text style={styles.title}>{service.name}</Text>
       <Text style={styles.group}>{service.group}</Text>
 
-      <GlassPanel borderRadius={24} style={styles.panel}>
+      <GlassPanel borderRadius={24} contentStyle={styles.panel}>
         <Text style={styles.label}>About this service</Text>
         <Text style={styles.body}>{service.description}</Text>
 

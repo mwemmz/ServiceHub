@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppShell } from '@/components/AppShell';
+import { GlassPanel } from '@/components/GlassPanel';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { LoadingState } from '@/components/LoadingState';
@@ -53,15 +54,20 @@ export default function CustomerNotifications() {
           data.map((item) => (
             <Pressable
               key={item.id}
-              style={[styles.card, !item.read && styles.unread]}
               onPress={async () => {
                 await markNotificationRead(item.id);
                 if (item.bookingId) router.push(`/(customer)/booking/${item.bookingId}`);
                 reload();
-              }}>
-              <Text style={styles.cardTitle}>{item.title}</Text>
-              <Text style={styles.body}>{item.body}</Text>
-              <Text style={styles.time}>{formatDateTime(item.createdAt)}</Text>
+              }}
+              style={({ pressed }) => [pressed && styles.pressed]}>
+              <GlassPanel
+                borderRadius={Radii.lg}
+                style={!item.read ? styles.unread : undefined}
+                contentStyle={styles.card}>
+                <Text style={styles.cardTitle}>{item.title}</Text>
+                <Text style={styles.body}>{item.body}</Text>
+                <Text style={styles.time}>{formatDateTime(item.createdAt)}</Text>
+              </GlassPanel>
             </Pressable>
           ))
         )}
@@ -81,15 +87,10 @@ const styles = StyleSheet.create({
   title: { color: Colors.charcoal, fontSize: FontSize.xxl, fontWeight: '800' },
   link: { color: Colors.accent, fontWeight: '700' },
   list: { gap: 10 },
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: Radii.lg,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
+  pressed: { opacity: 0.92 },
   unread: { borderColor: Colors.accent },
+  card: { padding: 14, gap: 4 },
   cardTitle: { color: Colors.charcoal, fontWeight: '800' },
-  body: { color: Colors.whiteSoft, marginTop: 4 },
-  time: { color: Colors.textLight, marginTop: 8, fontSize: FontSize.xs },
+  body: { color: Colors.whiteSoft },
+  time: { color: Colors.textLight, marginTop: 4, fontSize: FontSize.xs },
 });

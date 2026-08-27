@@ -35,7 +35,7 @@ export default function ConfirmLocationScreen() {
       <Text style={styles.title}>Confirm location</Text>
       <Text style={styles.sub}>Make sure this is where the service should happen.</Text>
 
-      <GlassPanel borderRadius={24} style={styles.panel}>
+      <GlassPanel borderRadius={24} contentStyle={styles.panel}>
         <LocationPinMap location={location} height={220} />
 
         <View style={styles.card}>

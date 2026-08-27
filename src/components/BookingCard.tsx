@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, FontSize, Radii, Shadows } from '@/constants/theme';
+import { GlassPanel } from '@/components/GlassPanel';
 import { StatusBadge } from '@/components/StatusBadge';
+import { Colors, FontSize, Radii } from '@/constants/theme';
 import { formatDateTime, formatKwacha } from '@/utils/format';
 import type { Booking } from '@/types';
 
@@ -13,29 +14,24 @@ interface Props {
 
 export function BookingCard({ booking, serviceName, counterpartName, onPress }: Props) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
-      <View style={styles.top}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.service}>{serviceName ?? 'Service'}</Text>
-          {counterpartName ? <Text style={styles.name}>{counterpartName}</Text> : null}
+    <Pressable onPress={onPress} style={({ pressed }) => [pressed && styles.pressed]}>
+      <GlassPanel borderRadius={Radii.lg} intensity="medium" contentStyle={styles.card}>
+        <View style={styles.top}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.service}>{serviceName ?? 'Service'}</Text>
+            {counterpartName ? <Text style={styles.name}>{counterpartName}</Text> : null}
+          </View>
+          <StatusBadge status={booking.status} />
         </View>
-        <StatusBadge status={booking.status} />
-      </View>
-      <Text style={styles.meta}>{formatDateTime(booking.scheduledAt)}</Text>
-      <Text style={styles.price}>{formatKwacha(booking.price.total)}</Text>
+        <Text style={styles.meta}>{formatDateTime(booking.scheduledAt)}</Text>
+        <Text style={styles.price}>{formatKwacha(booking.price.total)}</Text>
+      </GlassPanel>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: Radii.lg,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    ...Shadows.card,
-  },
+  card: { padding: 16 },
   pressed: { opacity: 0.92 },
   top: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   service: { color: Colors.charcoal, fontSize: FontSize.md, fontWeight: '800' },

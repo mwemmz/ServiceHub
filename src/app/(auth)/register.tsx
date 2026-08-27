@@ -109,6 +109,15 @@ function CustomerSteps({
 
   function patch(partial: Partial<Form>) {
     setForm((prev) => ({ ...prev, ...partial }));
+    // Clear field errors as the user types — don't keep blocking after a fix
+    const keys = Object.keys(partial);
+    if (keys.length) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        for (const key of keys) delete next[key];
+        return next;
+      });
+    }
   }
 
   const fullName = useMemo(
@@ -212,10 +221,10 @@ function CustomerSteps({
   if (step === 1) {
     return (
       <>
-        <RegField fieldKey="firstName" label="First Name" value={form.firstName} onChangeText={(firstName) => patch({ firstName })} placeholder="e.g. Chanda" autoCapitalize="words" error={errors.firstName} />
-        <RegField fieldKey="lastName" label="Last Name" value={form.lastName} onChangeText={(lastName) => patch({ lastName })} placeholder="e.g. Banda" autoCapitalize="words" error={errors.lastName} />
-        <RegField fieldKey="phone" label="Phone Number" value={form.phone} onChangeText={(phone) => patch({ phone })} placeholder="+260 97 XXX XXXX" keyboardType="phone-pad" error={errors.phone} />
-        <RegField fieldKey="email" label="Email Address" value={form.email} onChangeText={(email) => patch({ email })} placeholder="you@email.com" keyboardType="email-address" error={errors.email} />
+        <RegField fieldKey="firstName" nextFieldKey="lastName" label="First Name" value={form.firstName} onChangeText={(firstName) => patch({ firstName })} placeholder="e.g. Chanda" autoCapitalize="words" error={errors.firstName} />
+        <RegField fieldKey="lastName" nextFieldKey="phone" label="Last Name" value={form.lastName} onChangeText={(lastName) => patch({ lastName })} placeholder="e.g. Banda" autoCapitalize="words" error={errors.lastName} />
+        <RegField fieldKey="phone" nextFieldKey="email" label="Phone Number" value={form.phone} onChangeText={(phone) => patch({ phone })} placeholder="+260 97 XXX XXXX" keyboardType="phone-pad" error={errors.phone} />
+        <RegField fieldKey="email" label="Email Address" value={form.email} onChangeText={(email) => patch({ email })} placeholder="you@email.com" keyboardType="email-address" error={errors.email} returnKeyType="done" onSubmitEditing={goNext} />
         <RegError message={banner} />
         <RegPrimaryButton label="Continue" onPress={goNext} />
       </>
@@ -225,9 +234,9 @@ function CustomerSteps({
   if (step === 2) {
     return (
       <>
-        <RegField fieldKey="password" label="Password" value={form.password} onChangeText={(password) => patch({ password })} placeholder="Create a password" secureTextEntry error={errors.password} />
+        <RegField fieldKey="password" nextFieldKey="confirm" label="Password" value={form.password} onChangeText={(password) => patch({ password })} placeholder="Create a password" secureTextEntry error={errors.password} />
         <PasswordStrength password={form.password} />
-        <RegField fieldKey="confirm" label="Confirm Password" value={form.confirm} onChangeText={(confirm) => patch({ confirm })} placeholder="Repeat your password" secureTextEntry error={errors.confirm} />
+        <RegField fieldKey="confirm" label="Confirm Password" value={form.confirm} onChangeText={(confirm) => patch({ confirm })} placeholder="Repeat your password" secureTextEntry error={errors.confirm} returnKeyType="done" onSubmitEditing={goNext} />
         <RegError message={banner} />
         <RegPrimaryButton label="Continue" onPress={goNext} />
       </>

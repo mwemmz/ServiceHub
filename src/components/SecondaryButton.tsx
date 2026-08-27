@@ -8,7 +8,7 @@ interface Props {
   style?: ViewStyle;
 }
 
-/** Matches Create Account secondary / glass outline CTA. */
+/** Frosted outline pill — matches Google / secondary actions in the reference. */
 export function SecondaryButton({ label, onPress, disabled, style }: Props) {
   return (
     <Pressable
@@ -23,7 +23,7 @@ export function SecondaryButton({ label, onPress, disabled, style }: Props) {
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     minHeight: 48,
     borderRadius: Radii.pill,
     alignItems: 'center',

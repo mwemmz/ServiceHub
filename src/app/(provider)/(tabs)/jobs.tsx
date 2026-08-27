@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppShell } from '@/components/AppShell';
 import { BookingCard } from '@/components/BookingCard';
+import { GlassPanel } from '@/components/GlassPanel';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { LoadingState } from '@/components/LoadingState';
@@ -53,13 +54,13 @@ export default function ProviderJobs() {
   return (
     <AppShell edges={['top']}>
       <Text style={styles.title}>Jobs</Text>
-      <View style={styles.tabs}>
+      <GlassPanel borderRadius={Radii.full} contentStyle={styles.tabs}>
         {(['active', 'completed', 'cancelled'] as Tab[]).map((item) => (
           <Pressable key={item} onPress={() => setTab(item)} style={[styles.tab, tab === item && styles.tabOn]}>
             <Text style={[styles.tabText, tab === item && styles.tabTextOn]}>{item}</Text>
           </Pressable>
         ))}
-      </View>
+      </GlassPanel>
       <View style={styles.list}>
         {filtered.length === 0 ? (
           <EmptyState title="No jobs here" message="Accepted and completed work will show in these lists." />
@@ -80,16 +81,16 @@ export default function ProviderJobs() {
 }
 
 const styles = StyleSheet.create({
-  title: { color: Colors.charcoal, fontSize: FontSize.xxl, fontWeight: '800', marginTop: 8 },
-  tabs: { flexDirection: 'row', gap: 8, marginVertical: 16 },
+  title: { color: Colors.charcoal, fontSize: FontSize.xxl, fontWeight: '800', marginTop: 8, marginBottom: 12 },
+  tabs: { flexDirection: 'row', gap: 8, padding: 6, marginBottom: 16 },
   tab: {
     flex: 1,
     borderRadius: Radii.full,
     paddingVertical: 10,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: 'rgba(255,255,255,0.16)',
   },
   tabOn: { backgroundColor: Colors.accent, borderColor: Colors.accent },
   tabText: { color: Colors.whiteSoft, fontWeight: '700', textTransform: 'capitalize' },

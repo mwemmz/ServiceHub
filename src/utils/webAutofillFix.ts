@@ -19,6 +19,15 @@ export function installWebAutofillFix(): void {
       box-shadow: none !important;
       -webkit-appearance: none !important;
       appearance: none !important;
+      /* Kill default blue focus ring on the raw input — glow is on the outer field */
+      outline-color: transparent !important;
+    }
+
+    input:focus,
+    textarea:focus {
+      outline: none !important;
+      box-shadow: none !important;
+      border: none !important;
     }
 
     /* Kill the autofill “white/blue box inside the field” */
@@ -36,7 +45,6 @@ export function installWebAutofillFix(): void {
       outline: none !important;
       background-color: transparent !important;
       background-image: none !important;
-      /* Delay autofill paint forever so the solid fill never appears */
       transition: background-color 99999s ease-out 0s !important;
       -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
       box-shadow: 0 0 0px 1000px transparent inset !important;

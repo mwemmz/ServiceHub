@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { AppShell } from '@/components/AppShell';
 import { GlassPanel } from '@/components/GlassPanel';
-import { InputField } from '@/components/InputField';
+import { InputField, type InputFieldHandle } from '@/components/InputField';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { SecondaryButton } from '@/components/SecondaryButton';
 import { Colors, FontSize } from '@/constants/theme';
@@ -20,12 +20,23 @@ export default function LoginScreen() {
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
+  const passwordRef = useRef<InputFieldHandle>(null);
+
+  function validate(): boolean {
+    const next: { email?: string; password?: string } = {};
+    if (!email.trim()) next.email = 'This field is required.';
+    if (!password) next.password = 'This field is required.';
+    setFieldErrors(next);
+    return Object.keys(next).length === 0;
+  }
 
   async function onSubmit() {
     setError('');
+    if (!validate()) return;
     setLoading(true);
     try {
-      const user = await login(email, password);
+      const user = await login(email.trim(), password);
       if (user.role === 'provider') {
         router.replace('/(provider)/(tabs)');
         return;
@@ -46,22 +57,38 @@ export default function LoginScreen() {
       <Text style={styles.title}>Welcome back</Text>
       <Text style={styles.sub}>Sign in to continue to your ServiceHub account.</Text>
 
-      <GlassPanel borderRadius={24} style={styles.panel}>
+      <GlassPanel borderRadius={24} contentStyle={styles.panel}>
         <InputField
           label="Email or phone"
           icon="mail-outline"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(v) => {
+            setEmail(v);
+            setFieldErrors((e) => ({ ...e, email: undefined }));
+            setError('');
+          }}
           placeholder="Email or phone number"
           keyboardType="email-address"
+          error={fieldErrors.email}
+          returnKeyType="next"
+          blurOnSubmit={false}
+          onSubmitEditing={() => passwordRef.current?.focus()}
         />
         <InputField
+          ref={passwordRef}
           label="Password"
           icon="lock-closed-outline"
           value={password}
-          onChangeText={setPassword}
+          onChangeText={(v) => {
+            setPassword(v);
+            setFieldErrors((e) => ({ ...e, password: undefined }));
+            setError('');
+          }}
           placeholder="Password"
           secureTextEntry
+          error={fieldErrors.password}
+          returnKeyType="done"
+          onSubmitEditing={onSubmit}
         />
         <View style={styles.row}>
           <Pressable onPress={() => setRemember((value) => !value)} style={styles.remember}>
@@ -73,7 +100,7 @@ export default function LoginScreen() {
           </Pressable>
         </View>
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <PrimaryButton label="Sign In" onPress={onSubmit} loading={loading} disabled={!email || !password} />
+        <PrimaryButton label="Sign In" onPress={onSubmit} loading={loading} />
         <Text style={styles.or}>or</Text>
         <SecondaryButton
           label="Continue with Google"

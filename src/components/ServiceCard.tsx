@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontSize, Radii, Shadows } from '@/constants/theme';
+import { GlassPanel } from '@/components/GlassPanel';
+import { Colors, FontSize, Radii } from '@/constants/theme';
 import { formatKwacha } from '@/utils/format';
 import type { CategoryId, Service } from '@/types';
 
@@ -17,31 +18,30 @@ interface Props {
 
 export function ServiceCard({ service, onPress }: Props) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
-      <View style={styles.icon}>
-        <Ionicons name={ICONS[service.categoryId]} size={20} color={Colors.accent} />
-      </View>
-      <View style={styles.body}>
-        <Text style={styles.group}>{service.group}</Text>
-        <Text style={styles.name}>{service.name}</Text>
-        <Text style={styles.meta}>
-          From {formatKwacha(service.startingPrice)} · {service.durationMinutes} mins
-        </Text>
-      </View>
-      <Ionicons name="chevron-forward" size={18} color={Colors.textLight} />
+    <Pressable onPress={onPress} style={({ pressed }) => [pressed && styles.pressed]}>
+      <GlassPanel borderRadius={Radii.md} intensity="medium" contentStyle={styles.card}>
+        <View style={styles.icon}>
+          <Ionicons name={ICONS[service.categoryId]} size={20} color={Colors.accent} />
+        </View>
+        <View style={styles.body}>
+          <Text style={styles.group}>{service.group}</Text>
+          <Text style={styles.name}>{service.name}</Text>
+          <Text style={styles.meta}>
+            From {formatKwacha(service.startingPrice)} · {service.durationMinutes} mins
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={Colors.textLight} />
+      </GlassPanel>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radii.md,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    ...Shadows.card,
   },
   pressed: { opacity: 0.92 },
   icon: {

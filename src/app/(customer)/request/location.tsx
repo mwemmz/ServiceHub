@@ -120,7 +120,7 @@ export default function RequestLocationScreen() {
         <Text style={{ fontWeight: '800' }}>{draft?.serviceName ?? 'your service'}</Text>?
       </Text>
 
-      <GlassPanel borderRadius={24} style={styles.panel}>
+      <GlassPanel borderRadius={24} contentStyle={styles.panel}>
         <LocationPinMap
           location={location}
           height={240}

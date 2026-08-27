@@ -8,14 +8,17 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
-import { Platform, ScrollView, View } from 'react-native';
+import { Platform, ScrollView, TextInput, View } from 'react-native';
 
 type FieldMap = Record<string, View | null>;
+type InputMap = Record<string, TextInput | null>;
 
 type RegScrollContextValue = {
   scrollRef: RefObject<ScrollView | null>;
   registerField: (key: string, node: View | null) => void;
+  registerInput: (key: string, input: TextInput | null) => void;
   scrollToField: (key: string) => void;
+  focusField: (key: string) => void;
   blurActiveInput: () => void;
 };
 
@@ -26,6 +29,10 @@ let activeScrollApi: RegScrollContextValue | null = null;
 
 export function scrollToRegField(key: string): void {
   activeScrollApi?.scrollToField(key);
+}
+
+export function focusRegField(key: string): void {
+  activeScrollApi?.focusField(key);
 }
 
 function scrollFieldIntoViewWeb(target: View, fieldKey: string) {
@@ -51,7 +58,7 @@ function scrollFieldIntoViewWeb(target: View, fieldKey: string) {
       host.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   } catch {
-    // ignore — error message under the field is enough
+    // ignore
   }
 }
 
@@ -63,9 +70,14 @@ export function RegScrollProvider({
   scrollRef: RefObject<ScrollView | null>;
 }) {
   const fields = useRef<FieldMap>({});
+  const inputs = useRef<InputMap>({});
 
   const registerField = useCallback((key: string, node: View | null) => {
     fields.current[key] = node;
+  }, []);
+
+  const registerInput = useCallback((key: string, input: TextInput | null) => {
+    inputs.current[key] = input;
   }, []);
 
   const blurActiveInput = useCallback(() => {
@@ -81,25 +93,43 @@ export function RegScrollProvider({
       if (!target || !scroll) return;
 
       try {
-        // findNodeHandle is NOT supported on web — never call it
         if (Platform.OS === 'web') {
           scrollFieldIntoViewWeb(target, key);
           return;
         }
-
         target.measureInWindow((_fx, fy) => {
           scroll.scrollTo({ y: Math.max(0, fy - 120), animated: true });
         });
       } catch {
-        // Validation errors still show — never crash the form
+        // never crash the form
       }
     },
     [scrollRef],
   );
 
+  const focusField = useCallback(
+    (key: string) => {
+      const input = inputs.current[key];
+      if (!input) return;
+      // Keep keyboard open: focus next without an intermediate blur
+      requestAnimationFrame(() => {
+        input.focus();
+        scrollToField(key);
+      });
+    },
+    [scrollToField],
+  );
+
   const value = useMemo(
-    () => ({ scrollRef, registerField, scrollToField, blurActiveInput }),
-    [scrollRef, registerField, scrollToField, blurActiveInput],
+    () => ({
+      scrollRef,
+      registerField,
+      registerInput,
+      scrollToField,
+      focusField,
+      blurActiveInput,
+    }),
+    [scrollRef, registerField, registerInput, scrollToField, focusField, blurActiveInput],
   );
 
   useEffect(() => {
@@ -118,7 +148,9 @@ export function useRegScroll(): RegScrollContextValue {
     return {
       scrollRef: { current: null },
       registerField: () => undefined,
+      registerInput: () => undefined,
       scrollToField: () => undefined,
+      focusField: () => undefined,
       blurActiveInput: () => undefined,
     };
   }

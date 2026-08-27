@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { GlassPanel } from '@/components/GlassPanel';
 import {
   RegPrimaryButton,
   RegSecondaryButton,
@@ -33,14 +34,14 @@ export default function ProviderPendingScreen() {
       <View style={styles.badge}>
         <Ionicons name="hourglass-outline" size={36} color={RegColors.amber} />
       </View>
-      <View style={styles.card}>
+      <GlassPanel borderRadius={16} contentStyle={styles.card}>
         <Text style={styles.cardTitle}>Status</Text>
         <Text style={styles.status}>Awaiting review</Text>
         <Text style={styles.cardBody}>
           You are not listed as an active provider yet. Keep an eye on your email or phone for
           updates.
         </Text>
-      </View>
+      </GlassPanel>
       <RegPrimaryButton
         label="Open Provider Dashboard"
         onPress={() => router.replace('/(provider)/(tabs)')}
@@ -64,14 +65,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  card: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: RegColors.glassBorder,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    padding: 14,
-    gap: 6,
-  },
+  card: { padding: 14, gap: 6 },
   cardTitle: { color: RegColors.whiteMuted, fontWeight: '700', fontSize: 12 },
   status: { color: RegColors.amber, fontWeight: '800', fontSize: 18 },
   cardBody: { color: RegColors.whiteSoft, lineHeight: 20, fontSize: 13 },

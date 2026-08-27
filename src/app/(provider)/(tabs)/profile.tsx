@@ -23,7 +23,7 @@ export default function ProviderProfile() {
           {providerProfile?.rating.toFixed(1)} rating
         </Text>
       </View>
-      <GlassPanel borderRadius={24} style={styles.panel}>
+      <GlassPanel borderRadius={24} contentStyle={styles.panel}>
         <Row icon="construct-outline" label="Services & prices" onPress={() => router.push('/(provider)/services')} />
         <Row icon="time-outline" label="Availability" onPress={() => router.push('/(provider)/availability')} />
         <Row icon="location-outline" label="Service area" onPress={() => router.push('/(provider)/setup')} />

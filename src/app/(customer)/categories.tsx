@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { AppShell } from '@/components/AppShell';
 import { GlassPanel } from '@/components/GlassPanel';
 import { LoadingState } from '@/components/LoadingState';
-import { Colors, FontSize, Radii, Spacing } from '@/constants/theme';
+import { Colors, FontSize } from '@/constants/theme';
+import { RegColors, ScriptFont } from '@/constants/registrationTheme';
 import { useAuth } from '@/context/AuthContext';
 import { getCategories } from '@/services/catalogService';
 import type { Category } from '@/types';
 import { firstName, greetingForNow } from '@/utils/format';
+
+const SCRIPT = Platform.select(ScriptFont) ?? 'cursive';
 
 /** First screen after customer signup/login — three main service categories. */
 export default function ServiceCategoriesScreen() {
@@ -34,7 +37,9 @@ export default function ServiceCategoriesScreen() {
     <AppShell>
       <View style={styles.top}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.brand}>ServiceHub</Text>
+          <Text style={styles.brand}>
+            Service<Text style={styles.brandHub}>Hub</Text>
+          </Text>
           <Text style={styles.hello}>
             {greetingForNow()}, {firstName(user?.fullName ?? 'there')}
           </Text>
@@ -49,48 +54,61 @@ export default function ServiceCategoriesScreen() {
       </View>
 
       <Text style={styles.section}>Service categories</Text>
+      <Text style={styles.sectionSub}>Beauty, cleaning, and repairs — near you.</Text>
 
-      <GlassPanel borderRadius={24} style={styles.panel}>
+      <View style={styles.list}>
         {categories.map((category) => (
           <Pressable
             key={category.id}
-            style={({ pressed }) => [
-              styles.card,
-              { backgroundColor: category.background },
-              pressed && { opacity: 0.92 },
-            ]}
             onPress={() =>
               router.push(`/(customer)/request/services?categoryId=${category.id}` as Href)
-            }>
-            <View style={styles.iconWrap}>
-              <Ionicons
-                name={category.icon as keyof typeof Ionicons.glyphMap}
-                size={28}
-                color={category.accent}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>{category.name}</Text>
-              <Text style={styles.cardBody}>{category.description}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={category.accent} />
+            }
+            style={({ pressed }) => [pressed && { opacity: 0.92 }]}>
+            <GlassPanel borderRadius={24} intensity="medium">
+              <View style={styles.card}>
+                <View style={[styles.iconWrap, { backgroundColor: category.background }]}>
+                  <Ionicons
+                    name={category.icon as keyof typeof Ionicons.glyphMap}
+                    size={28}
+                    color={category.accent}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cardTitle}>{category.name}</Text>
+                  <Text style={styles.cardBody}>{category.description}</Text>
+                </View>
+                <View style={[styles.chevron, { backgroundColor: category.accent }]}>
+                  <Ionicons name="arrow-forward" size={16} color={Colors.onAccent} />
+                </View>
+              </View>
+            </GlassPanel>
           </Pressable>
         ))}
-      </GlassPanel>
+      </View>
     </AppShell>
   );
 }
 
 const styles = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 8 },
-  brand: { color: Colors.accent, fontWeight: '800', fontSize: FontSize.sm, letterSpacing: 1 },
-  hello: { color: Colors.charcoal, fontSize: FontSize.xxl, fontWeight: '800', marginTop: 4 },
-  sub: { color: Colors.whiteSoft, marginTop: 4 },
+  brand: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 18,
+    letterSpacing: 0.2,
+  },
+  brandHub: {
+    color: RegColors.gold,
+    fontFamily: SCRIPT,
+    fontWeight: '600',
+  },
+  hello: { color: Colors.charcoal, fontSize: FontSize.xxl, fontWeight: '800', marginTop: 6 },
+  sub: { color: Colors.whiteSoft, marginTop: 4, lineHeight: 20 },
   homeBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderWidth: 1,
     borderColor: Colors.border,
     alignItems: 'center',
@@ -100,28 +118,43 @@ const styles = StyleSheet.create({
     color: Colors.charcoal,
     fontWeight: '800',
     fontSize: FontSize.lg,
-    marginTop: 8,
-    marginBottom: 12,
+    marginTop: 12,
   },
-  panel: { padding: 14, gap: 12 },
+  sectionSub: {
+    color: Colors.whiteSoft,
+    fontSize: FontSize.sm,
+    marginTop: 4,
+    marginBottom: 14,
+  },
+  list: { gap: 12 },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    borderRadius: Radii.lg,
     padding: 16,
-    minHeight: 100,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.22)',
+    minHeight: 104,
   },
   iconWrap: {
     width: 56,
     height: 56,
     borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.28)',
+  },
+  cardTitle: { color: Colors.charcoal, fontWeight: '800', fontSize: FontSize.lg },
+  cardBody: {
+    color: Colors.whiteSoft,
+    marginTop: 4,
+    lineHeight: 18,
+    fontSize: FontSize.sm,
+  },
+  chevron: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cardTitle: { color: Colors.charcoal, fontWeight: '800', fontSize: FontSize.lg },
-  cardBody: { color: Colors.whiteSoft, marginTop: 4, lineHeight: 18, fontSize: FontSize.sm },
 });

@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { GlassPanel } from '@/components/GlassPanel';
 import {
   RegPrimaryButton,
   RegSecondaryButton,
@@ -26,13 +27,13 @@ export default function ProviderSubmittedScreen() {
         Thank you for registering as a ServiceHub service provider. Your application has been
         submitted for verification. You will be notified once your account has been reviewed.
       </Text>
-      <View style={styles.card}>
+      <GlassPanel borderRadius={16} contentStyle={styles.card}>
         <Text style={styles.cardTitle}>What happens next?</Text>
         <Text style={styles.cardBody}>
           Your account stays pending until verification is complete. You will not appear as an
           active provider until approved.
         </Text>
-      </View>
+      </GlassPanel>
       <RegPrimaryButton
         label="Go to Provider Dashboard"
         onPress={() => router.replace('/(provider)/(tabs)')}
@@ -48,14 +49,7 @@ export default function ProviderSubmittedScreen() {
 const styles = StyleSheet.create({
   iconWrap: { alignItems: 'center', marginBottom: 4 },
   body: { color: RegColors.whiteSoft, textAlign: 'center', lineHeight: 22, fontSize: 14 },
-  card: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: RegColors.glassBorder,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    padding: 14,
-    gap: 6,
-  },
+  card: { padding: 14, gap: 6 },
   cardTitle: { color: RegColors.white, fontWeight: '800' },
   cardBody: { color: RegColors.whiteMuted, lineHeight: 20, fontSize: 13 },
 });

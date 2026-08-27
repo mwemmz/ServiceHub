@@ -1,7 +1,9 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, FontSize, Shadows } from '@/constants/theme';
+import { Colors, FontSize, Radii, Shadows } from '@/constants/theme';
+import { RegColors } from '@/constants/registrationTheme';
 
 export interface TabItem {
   key: string;
@@ -18,63 +20,116 @@ interface Props {
   centerIcon?: keyof typeof Ionicons.glyphMap;
 }
 
+const CENTER_SLOT = 64;
+
 export function AppTabBar({ items, activeKey, onChange, onCenterPress, centerIcon = 'add' }: Props) {
   const insets = useSafeAreaInsets();
   const left = items.slice(0, 2);
   const right = items.slice(2);
 
   return (
-    <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-      {left.map((item) => (
-        <TabButton key={item.key} item={item} active={item.key === activeKey} onPress={() => onChange(item.key)} />
-      ))}
-      <Pressable onPress={onCenterPress} style={styles.center} accessibilityLabel="New request">
-        <Ionicons name={centerIcon} size={28} color={Colors.onAccent} />
-      </Pressable>
-      {right.map((item) => (
-        <TabButton key={item.key} item={item} active={item.key === activeKey} onPress={() => onChange(item.key)} />
-      ))}
+    <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+      <View style={styles.row}>
+        {left.map((item) => (
+          <TabButton
+            key={item.key}
+            item={item}
+            active={item.key === activeKey}
+            onPress={() => onChange(item.key)}
+          />
+        ))}
+
+        <View style={styles.centerSlot}>
+          <Pressable onPress={onCenterPress} style={styles.centerOuter} accessibilityLabel="New request">
+            <LinearGradient
+              colors={['#E8B07A', RegColors.gold, RegColors.goldDeep]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.center}>
+              <Ionicons name={centerIcon} size={26} color="#FFFFFF" />
+            </LinearGradient>
+          </Pressable>
+        </View>
+
+        {right.map((item) => (
+          <TabButton
+            key={item.key}
+            item={item}
+            active={item.key === activeKey}
+            onPress={() => onChange(item.key)}
+          />
+        ))}
+      </View>
     </View>
   );
 }
 
 function TabButton({ item, active, onPress }: { item: TabItem; active: boolean; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={styles.tab} accessibilityRole="button" accessibilityLabel={item.label}>
+    <Pressable
+      onPress={onPress}
+      style={styles.tab}
+      accessibilityRole="button"
+      accessibilityLabel={item.label}>
       <Ionicons
         name={active ? item.activeIcon ?? item.icon : item.icon}
         size={22}
         color={active ? Colors.accent : Colors.textLight}
       />
-      <Text style={[styles.label, active && styles.activeLabel]}>{item.label}</Text>
+      <Text style={[styles.label, active && styles.activeLabel]} numberOfLines={1}>
+        {item.label}
+      </Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-around',
-    backgroundColor: 'rgba(16,22,42,0.92)',
+    backgroundColor: 'rgba(10,16,32,0.88)',
     borderTopWidth: 1,
     borderColor: Colors.border,
-    paddingTop: 10,
+    paddingTop: 8,
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
     ...Shadows.floating,
   },
-  tab: { flex: 1, alignItems: 'center', gap: 4, paddingBottom: 4 },
-  label: { fontSize: FontSize.xs, color: Colors.textLight, fontWeight: '600' },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 4,
+  },
+  tab: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 3,
+    paddingBottom: 6,
+    paddingHorizontal: 2,
+  },
+  label: {
+    fontSize: FontSize.xs,
+    color: Colors.textLight,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
   activeLabel: { color: Colors.accent },
+  centerSlot: {
+    width: CENTER_SLOT,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 2,
+  },
+  centerOuter: {
+    marginTop: -20,
+    borderRadius: Radii.full,
+    ...Shadows.floating,
+  },
   center: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: Colors.accent,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -22,
-    ...Shadows.floating,
   },
 });

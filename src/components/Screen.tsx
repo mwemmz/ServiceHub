@@ -5,12 +5,17 @@ interface Props {
   children: ReactNode;
   scroll?: boolean;
   padded?: boolean;
+  keyboard?: boolean;
 }
 
 /** App screen wrapper — uses shared Create Account visual shell. */
-export function Screen({ children, scroll, padded = true }: Props) {
+export function Screen({ children, scroll = true, padded = true, keyboard }: Props) {
   return (
-    <AppShell scroll={!!scroll} padded={padded} edges={['top', 'left', 'right', 'bottom']}>
+    <AppShell
+      scroll={scroll}
+      padded={padded}
+      keyboard={keyboard}
+      edges={['top', 'left', 'right', 'bottom']}>
       {children}
     </AppShell>
   );

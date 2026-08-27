@@ -122,6 +122,18 @@ export default function RegisterProviderScreen() {
 
   function patch(partial: Partial<Form>) {
     setForm((prev) => ({ ...prev, ...partial }));
+    const keys = Object.keys(partial);
+    if (keys.length) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        for (const key of keys) {
+          if (key === 'geo') continue;
+          delete next[key];
+          if (key === 'locationText') delete next.location;
+        }
+        return next;
+      });
+    }
   }
 
   const fullName = useMemo(
@@ -470,6 +482,7 @@ export default function RegisterProviderScreen() {
         <>
           <RegField
             fieldKey="firstName"
+            nextFieldKey="surname"
             label="First Name"
             value={form.firstName}
             onChangeText={(firstName) => patch({ firstName })}
@@ -478,6 +491,7 @@ export default function RegisterProviderScreen() {
           />
           <RegField
             fieldKey="surname"
+            nextFieldKey="phone"
             label="Surname"
             value={form.surname}
             onChangeText={(surname) => patch({ surname })}
@@ -486,6 +500,7 @@ export default function RegisterProviderScreen() {
           />
           <RegField
             fieldKey="phone"
+            nextFieldKey="email"
             label="Phone Number"
             value={form.phone}
             onChangeText={(phone) => patch({ phone })}
@@ -495,6 +510,7 @@ export default function RegisterProviderScreen() {
           />
           <RegField
             fieldKey="email"
+            nextFieldKey="dateOfBirth"
             label="Email"
             value={form.email}
             onChangeText={(email) => patch({ email })}
@@ -508,6 +524,7 @@ export default function RegisterProviderScreen() {
             onChangeText={(dateOfBirth) => patch({ dateOfBirth })}
             placeholder="YYYY-MM-DD"
             error={errors.dateOfBirth}
+            returnKeyType="done"
           />
           <View collapsable={false}>
             <Text style={styles.label}>Gender</Text>
@@ -533,6 +550,7 @@ export default function RegisterProviderScreen() {
         <>
           <RegField
             fieldKey="nrcNumber"
+            nextFieldKey="legalName"
             label="NRC Number"
             value={form.nrcNumber}
             onChangeText={(nrcNumber) => patch({ nrcNumber })}
@@ -541,6 +559,7 @@ export default function RegisterProviderScreen() {
           />
           <RegField
             fieldKey="legalName"
+            nextFieldKey="dateOfBirth"
             label="Full Legal Name"
             value={form.legalName}
             onChangeText={(legalName) => patch({ legalName })}
@@ -555,6 +574,7 @@ export default function RegisterProviderScreen() {
             onChangeText={(dateOfBirth) => patch({ dateOfBirth })}
             placeholder="YYYY-MM-DD"
             error={errors.dateOfBirth}
+            returnKeyType="done"
           />
           <Text style={styles.label}>Gender</Text>
           <View style={styles.chipRow}>
@@ -618,6 +638,7 @@ export default function RegisterProviderScreen() {
           />
           <RegField
             fieldKey="description"
+            nextFieldKey="years"
             label="Description"
             value={currentDetail.description}
             onChangeText={(description) => updateDetail(currentServiceId, { description })}
@@ -628,6 +649,7 @@ export default function RegisterProviderScreen() {
           />
           <RegField
             fieldKey="years"
+            nextFieldKey="startPrice"
             label="Years of Experience"
             value={currentDetail.yearsExperience}
             onChangeText={(yearsExperience) => updateDetail(currentServiceId, { yearsExperience })}
@@ -636,6 +658,7 @@ export default function RegisterProviderScreen() {
           />
           <RegField
             fieldKey="startPrice"
+            nextFieldKey="maxPrice"
             label="Starting Price (K)"
             value={currentDetail.startingPrice}
             onChangeText={(startingPrice) => updateDetail(currentServiceId, { startingPrice })}
@@ -651,6 +674,7 @@ export default function RegisterProviderScreen() {
             placeholder="e.g. 500"
             keyboardType="decimal-pad"
             error={errors.maxPrice}
+            returnKeyType="done"
           />
           <Text style={styles.label}>Availability — days</Text>
           <View style={styles.chipRow}>
@@ -767,6 +791,7 @@ export default function RegisterProviderScreen() {
         <>
           <RegField
             fieldKey="password"
+            nextFieldKey="confirm"
             label="Password"
             value={form.password}
             onChangeText={(password) => patch({ password })}
@@ -781,6 +806,7 @@ export default function RegisterProviderScreen() {
             onChangeText={(confirm) => patch({ confirm })}
             secureTextEntry
             error={errors.confirm}
+            returnKeyType="done"
           />
           <RegPrimaryButton label="Continue" onPress={goNext} />
         </>

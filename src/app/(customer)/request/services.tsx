@@ -106,7 +106,7 @@ export default function RequestServicesScreen() {
       </Text>
 
       {isBeautyPicker ? (
-        <GlassPanel borderRadius={24} style={styles.panel}>
+        <GlassPanel borderRadius={24} contentStyle={styles.panel}>
           <Pressable
             style={({ pressed }) => [styles.choiceCard, pressed && { opacity: 0.92 }]}
             onPress={() => setBeautyBranch('salon')}>
@@ -156,7 +156,7 @@ export default function RequestServicesScreen() {
                 <Text style={styles.groupTitle}>{group}</Text>
               </View>
             ) : null}
-            <GlassPanel borderRadius={22} style={styles.panel}>
+            <GlassPanel borderRadius={22} contentStyle={styles.panel}>
               {list.map((service) => (
                 <Pressable
                   key={service.id}

@@ -82,13 +82,13 @@ export function RegShell({
               ref={scrollRef}
               contentContainerStyle={styles.scroll}
               keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
+              keyboardDismissMode="interactive"
               showsVerticalScrollIndicator={false}
               automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}>
               <Text style={styles.title}>{title}</Text>
               {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
 
-              <GlassPanel borderRadius={24} style={styles.card}>
+              <GlassPanel borderRadius={24} contentStyle={styles.card}>
                 {children}
               </GlassPanel>
             </ScrollView>

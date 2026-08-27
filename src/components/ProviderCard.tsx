@@ -1,7 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, FontSize, Radii, Shadows } from '@/constants/theme';
+import { GlassPanel } from '@/components/GlassPanel';
 import { Avatar } from '@/components/Avatar';
 import { RatingStars } from '@/components/RatingStars';
+import { Colors, FontSize, Radii } from '@/constants/theme';
 import { formatKwacha } from '@/utils/format';
 import { formatDistance } from '@/utils/geo';
 import type { ProviderListItem } from '@/services/providerService';
@@ -14,40 +15,45 @@ interface Props {
 
 export function ProviderCard({ item, serviceName, onPress }: Props) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
-      <Avatar name={item.user.fullName} uri={item.user.avatarUri} size={56} />
-      <View style={styles.body}>
-        <View style={styles.row}>
-          <Text style={styles.name} numberOfLines={1}>
-            {item.user.fullName}
-          </Text>
-          {item.profile.isOnline ? <Text style={styles.online}>Available</Text> : <Text style={styles.offline}>Offline</Text>}
-        </View>
-        <Text style={styles.service} numberOfLines={1}>
-          {serviceName ?? item.profile.serviceArea}
-        </Text>
-        <RatingStars rating={item.profile.rating} count={item.profile.reviewCount} />
-        <View style={styles.metaRow}>
-          {item.price != null ? <Text style={styles.price}>{formatKwacha(item.price)}</Text> : null}
-          {item.distanceKm != null ? <Text style={styles.meta}>{formatDistance(item.distanceKm)}</Text> : null}
-          {item.etaMinutes != null ? <Text style={styles.meta}>{item.etaMinutes} min</Text> : null}
-          <Text style={styles.meta}>{item.profile.completedJobs} jobs</Text>
-        </View>
-      </View>
+    <Pressable onPress={onPress} style={({ pressed }) => [pressed && styles.pressed]}>
+      <GlassPanel borderRadius={Radii.lg} intensity="medium" contentStyle={styles.card}>
+        <Avatar name={item.user.fullName} uri={item.user.avatarUri} size={56} />
+        <View style={styles.body}>
+            <View style={styles.row}>
+              <Text style={styles.name} numberOfLines={1}>
+                {item.user.fullName}
+              </Text>
+              {item.profile.isOnline ? (
+                <Text style={styles.online}>Available</Text>
+              ) : (
+                <Text style={styles.offline}>Offline</Text>
+              )}
+            </View>
+            <Text style={styles.service} numberOfLines={1}>
+              {serviceName ?? item.profile.serviceArea}
+            </Text>
+            <RatingStars rating={item.profile.rating} count={item.profile.reviewCount} />
+            <View style={styles.metaRow}>
+              {item.price != null ? <Text style={styles.price}>{formatKwacha(item.price)}</Text> : null}
+              {item.distanceKm != null ? (
+                <Text style={styles.meta}>{formatDistance(item.distanceKm)}</Text>
+              ) : null}
+              {item.etaMinutes != null ? (
+                <Text style={styles.meta}>{item.etaMinutes} min</Text>
+              ) : null}
+              <Text style={styles.meta}>{item.profile.completedJobs} jobs</Text>
+            </View>
+          </View>
+      </GlassPanel>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: Radii.lg,
     padding: 14,
     flexDirection: 'row',
     gap: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    ...Shadows.card,
   },
   pressed: { opacity: 0.92 },
   body: { flex: 1, minWidth: 0 },

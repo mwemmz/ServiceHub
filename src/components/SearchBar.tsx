@@ -59,11 +59,11 @@ export function SearchBar({
 
 const styles = StyleSheet.create({
   wrap: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radii.xl,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: Radii.pill,
     borderWidth: 1,
     borderColor: Colors.border,
-    minHeight: 52,
+    minHeight: 50,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',

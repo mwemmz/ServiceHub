@@ -12,7 +12,7 @@ export function LocationHeader({ location, onPress }: Props) {
   return (
     <Pressable onPress={onPress} style={styles.wrap} accessibilityRole="button">
       <Ionicons name="location" size={18} color={Colors.accent} />
-      <View style={{ flex: 1 }}>
+      <View style={styles.textCol}>
         <Text style={styles.label}>Current location</Text>
         <Text style={styles.value} numberOfLines={1}>
           {location?.address ?? 'Set your location'}
@@ -24,7 +24,8 @@ export function LocationHeader({ location, onPress }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  wrap: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 },
+  textCol: { flex: 1, minWidth: 0 },
   label: { color: Colors.textMuted, fontSize: FontSize.xs },
   value: { color: Colors.charcoal, fontSize: FontSize.sm, fontWeight: '700' },
 });

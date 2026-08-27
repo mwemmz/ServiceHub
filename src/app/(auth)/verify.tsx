@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { GlassPanel } from '@/components/GlassPanel';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { InputField } from '@/components/InputField';
@@ -32,9 +33,9 @@ export default function VerifyScreen() {
   }
 
   return (
-    <Screen>
+    <Screen keyboard>
       <ScreenHeader title="Verify your account" subtitle="Enter the 6-digit code for your email." />
-      <View style={styles.form}>
+      <GlassPanel borderRadius={24} contentStyle={styles.form}>
         {params.code ? (
           <View style={styles.notice}>
             <Text style={styles.noticeTitle}>Local demo code</Text>
@@ -43,17 +44,32 @@ export default function VerifyScreen() {
             </Text>
           </View>
         ) : null}
-        <InputField label="Verification code" value={code} onChangeText={setCode} placeholder="123456" keyboardType="number-pad" />
+        <InputField
+          label="Verification code"
+          value={code}
+          onChangeText={setCode}
+          placeholder="123456"
+          keyboardType="number-pad"
+          returnKeyType="done"
+          onSubmitEditing={onSubmit}
+        />
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <PrimaryButton label="Verify" onPress={onSubmit} loading={loading} disabled={code.length < 6} />
-      </View>
+      </GlassPanel>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  form: { gap: 14, paddingTop: 12 },
-  notice: { backgroundColor: Colors.accentSoft, padding: 14, borderRadius: Radii.md, gap: 4 },
+  form: { gap: 14, padding: 16 },
+  notice: {
+    backgroundColor: Colors.accentSoft,
+    padding: 14,
+    borderRadius: Radii.md,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
   noticeTitle: { fontWeight: '800', color: Colors.charcoal },
   noticeBody: { color: Colors.textMuted, fontSize: FontSize.sm, lineHeight: 20 },
   error: { color: Colors.error },
