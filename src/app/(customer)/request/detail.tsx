@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { AppShell } from '@/components/AppShell';
+import { BackButton } from '@/components/BackButton';
 import { GlassPanel } from '@/components/GlassPanel';
 import { LoadingState } from '@/components/LoadingState';
 import { PrimaryButton } from '@/components/PrimaryButton';
@@ -52,9 +53,11 @@ export default function RequestServiceDetailScreen() {
 
   return (
     <AppShell>
-      <Pressable onPress={() => router.back()} style={styles.back}>
-        <Text style={styles.backText}>Back</Text>
-      </Pressable>
+      <BackButton
+        fallbackHref={
+          `/(customer)/request/services?categoryId=${categoryId ?? service.categoryId}` as Href
+        }
+      />
 
       <Text style={styles.eyebrow}>{category?.name ?? 'Service'}</Text>
       <Text style={styles.title}>{service.name}</Text>
@@ -85,8 +88,6 @@ export default function RequestServiceDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  back: { paddingVertical: 6, alignSelf: 'flex-start' },
-  backText: { color: Colors.accent, fontWeight: '700', fontSize: 15 },
   eyebrow: {
     color: Colors.accent,
     fontWeight: '800',

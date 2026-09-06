@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
@@ -8,32 +8,63 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import { Colors, FontSize, Radii } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useAsyncData } from '@/hooks/useAsyncData';
+import { clearPersistedState, usePersistedState } from '@/hooks/usePersistedState';
 import { getCategories, getServicesForCategory } from '@/services/catalogService';
 import { emptyProviderProfile, saveProviderProfile } from '@/services/providerService';
 import { updateUser } from '@/services/authService';
+import { StorageKeys } from '@/services/storage';
 import type { CategoryId, ProviderService } from '@/types';
+
+type ProviderSetupDraft = {
+  fullName: string;
+  bio: string;
+  area: string;
+  years: string;
+  categoryId: CategoryId;
+  selected: Record<string, string>;
+};
 
 export default function ProviderSetupScreen() {
   const router = useRouter();
   const { user, providerProfile, refresh } = useAuth();
-  const [fullName, setFullName] = useState(user?.fullName ?? '');
-  const [bio, setBio] = useState(providerProfile?.bio ?? '');
-  const [area, setArea] = useState(providerProfile?.serviceArea ?? '');
-  const [years, setYears] = useState(String(providerProfile?.yearsOfExperience ?? 1));
-  const [categoryId, setCategoryId] = useState<CategoryId>(providerProfile?.categoryId ?? 'beauty');
-  const [selected, setSelected] = useState<Record<string, string>>(
-    Object.fromEntries((providerProfile?.services ?? []).map((item) => [item.serviceId, String(item.price)])),
-  );
+  const [draft, setDraft] = usePersistedState<ProviderSetupDraft>(StorageKeys.draftProviderSetup, {
+    fullName: user?.fullName ?? '',
+    bio: providerProfile?.bio ?? '',
+    area: providerProfile?.serviceArea ?? '',
+    years: String(providerProfile?.yearsOfExperience ?? 1),
+    categoryId: providerProfile?.categoryId ?? 'beauty',
+    selected: Object.fromEntries(
+      (providerProfile?.services ?? []).map((item) => [item.serviceId, String(item.price)]),
+    ),
+  });
+  const { fullName, bio, area, years, categoryId, selected } = draft;
   const [saving, setSaving] = useState(false);
   const { data: categories } = useAsyncData(getCategories, []);
   const { data: services } = useAsyncData(() => getServicesForCategory(categoryId), [categoryId]);
 
+  useEffect(() => {
+    if (!user?.fullName && !providerProfile) return;
+    setDraft((prev) => ({
+      fullName: prev.fullName || user?.fullName || '',
+      bio: prev.bio || providerProfile?.bio || '',
+      area: prev.area || providerProfile?.serviceArea || '',
+      years: prev.years || String(providerProfile?.yearsOfExperience ?? 1),
+      categoryId: prev.categoryId || providerProfile?.categoryId || 'beauty',
+      selected:
+        Object.keys(prev.selected).length > 0
+          ? prev.selected
+          : Object.fromEntries(
+              (providerProfile?.services ?? []).map((item) => [item.serviceId, String(item.price)]),
+            ),
+    }));
+  }, [user?.fullName, providerProfile, setDraft]);
+
   function toggle(id: string, startingPrice: number) {
-    setSelected((current) => {
-      const next = { ...current };
-      if (next[id] != null) delete next[id];
-      else next[id] = String(startingPrice);
-      return next;
+    setDraft((current) => {
+      const nextSelected = { ...current.selected };
+      if (nextSelected[id] != null) delete nextSelected[id];
+      else nextSelected[id] = String(startingPrice);
+      return { ...current, selected: nextSelected };
     });
   }
 
@@ -57,6 +88,7 @@ export default function ProviderSetupScreen() {
     });
     await refresh();
     setSaving(false);
+    await clearPersistedState(StorageKeys.draftProviderSetup);
     router.replace('/(provider)/(tabs)');
   }
 
@@ -64,19 +96,38 @@ export default function ProviderSetupScreen() {
     <Screen scroll>
       <ScreenHeader title="Provider profile" subtitle="Choose your category, services and prices." />
       <View style={styles.form}>
-        <InputField label="Full name" value={fullName} onChangeText={setFullName} autoCapitalize="words" />
-        <InputField label="Bio" value={bio} onChangeText={setBio} placeholder="Tell customers about your work" multiline />
-        <InputField label="Service area" value={area} onChangeText={setArea} placeholder="e.g. Woodlands and Kabulonga" autoCapitalize="words" />
-        <InputField label="Years of experience" value={years} onChangeText={setYears} keyboardType="number-pad" />
+        <InputField
+          label="Full name"
+          value={fullName}
+          onChangeText={(value) => setDraft((prev) => ({ ...prev, fullName: value }))}
+          autoCapitalize="words"
+        />
+        <InputField
+          label="Bio"
+          value={bio}
+          onChangeText={(value) => setDraft((prev) => ({ ...prev, bio: value }))}
+          placeholder="Tell customers about your work"
+          multiline
+        />
+        <InputField
+          label="Service area"
+          value={area}
+          onChangeText={(value) => setDraft((prev) => ({ ...prev, area: value }))}
+          placeholder="e.g. Woodlands and Kabulonga"
+          autoCapitalize="words"
+        />
+        <InputField
+          label="Years of experience"
+          value={years}
+          onChangeText={(value) => setDraft((prev) => ({ ...prev, years: value }))}
+          keyboardType="number-pad"
+        />
         <Text style={styles.label}>Category</Text>
         <View style={styles.row}>
           {(categories ?? []).map((category) => (
             <Pressable
               key={category.id}
-              onPress={() => {
-                setCategoryId(category.id);
-                setSelected({});
-              }}
+              onPress={() => setDraft((prev) => ({ ...prev, categoryId: category.id, selected: {} }))}
               style={[styles.chip, categoryId === category.id && styles.chipOn]}>
               <Text style={[styles.chipText, categoryId === category.id && styles.chipTextOn]}>{category.shortName}</Text>
             </Pressable>
@@ -91,7 +142,16 @@ export default function ProviderSetupScreen() {
                 <Text style={styles.serviceName}>{on ? '✓ ' : ''}{service.name}</Text>
               </Pressable>
               {on ? (
-                <InputField value={selected[service.id]} onChangeText={(text) => setSelected((current) => ({ ...current, [service.id]: text }))} keyboardType="number-pad" />
+                <InputField
+                  value={selected[service.id]}
+                  onChangeText={(text) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      selected: { ...prev.selected, [service.id]: text },
+                    }))
+                  }
+                  keyboardType="number-pad"
+                />
               ) : null}
             </View>
           );

@@ -53,7 +53,11 @@ export default function ResetPasswordScreen() {
 
   return (
     <Screen keyboard>
-      <ScreenHeader title="Reset password" subtitle="Enter the code and choose a new password." />
+      <ScreenHeader
+        title="Reset password"
+        subtitle="Enter the code and choose a new password."
+        fallbackHref={'/(auth)/login' as import('expo-router').Href}
+      />
       <GlassPanel borderRadius={24} contentStyle={styles.form}>
         {params.code ? (
           <View style={styles.notice}>

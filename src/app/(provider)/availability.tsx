@@ -7,13 +7,18 @@ import { InputField } from '@/components/InputField';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Colors, FontSize, Radii } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
+import { clearPersistedState, usePersistedState } from '@/hooks/usePersistedState';
 import { saveProviderProfile } from '@/services/providerService';
+import { StorageKeys } from '@/services/storage';
 import type { AvailabilitySlot } from '@/types';
 
 export default function AvailabilityScreen() {
   const router = useRouter();
   const { providerProfile, refresh } = useAuth();
-  const [slots, setSlots] = useState<AvailabilitySlot[]>(providerProfile?.availability ?? []);
+  const [slots, setSlots] = usePersistedState<AvailabilitySlot[]>(
+    StorageKeys.draftProviderAvailability,
+    providerProfile?.availability ?? [],
+  );
   const [saving, setSaving] = useState(false);
 
   function update(day: AvailabilitySlot['day'], patch: Partial<AvailabilitySlot>) {
@@ -26,6 +31,7 @@ export default function AvailabilityScreen() {
     await saveProviderProfile({ ...providerProfile, availability: slots });
     await refresh();
     setSaving(false);
+    await clearPersistedState(StorageKeys.draftProviderAvailability);
     router.back();
   }
 
@@ -62,9 +68,9 @@ export default function AvailabilityScreen() {
 }
 
 const styles = StyleSheet.create({
-  list: { gap: 12, paddingBottom: 32 },
-  card: { backgroundColor: Colors.surface, borderRadius: Radii.lg, padding: 14 },
+  list: { gap: 12, marginTop: 12, paddingBottom: 40 },
+  card: { backgroundColor: Colors.surface, borderRadius: Radii.md, padding: 14, gap: 10 },
   day: { color: Colors.charcoal, fontWeight: '800', fontSize: FontSize.md },
-  times: { flexDirection: 'row', gap: 10, marginTop: 10 },
-  off: { color: Colors.textMuted, marginTop: 6 },
+  times: { flexDirection: 'row', gap: 10 },
+  off: { color: Colors.textMuted },
 });

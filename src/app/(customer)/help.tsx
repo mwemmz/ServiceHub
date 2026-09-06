@@ -6,7 +6,7 @@ import { Colors, FontSize } from '@/constants/theme';
 export default function HelpScreen() {
   return (
     <Screen scroll>
-      <ScreenHeader title="Help" subtitle="ServiceHub support" />
+      <ScreenHeader title="Help" subtitle="ServiceHub support" fallbackHref="/(customer)/(tabs)/profile" />
       <Text style={styles.body}>
         ServiceHub is a local marketplace for Beauty, Cleaning and Repair services. Bookings in this version are stored
         on your device so you can try the full flow before a backend is connected.

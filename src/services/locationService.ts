@@ -1,8 +1,53 @@
+import { Platform } from 'react-native';
 import * as Location from 'expo-location';
 import { AppConfig } from '@/constants/config';
 import type { GeoLocation } from '@/types';
 
 export type LocationPermission = 'undetermined' | 'granted' | 'denied';
+
+const GPS_TIMEOUT_MS = 15000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error(message)), ms);
+    }),
+  ]);
+}
+
+/** Browser Geolocation API — reliable on web/mobile browsers with HTTPS or localhost. */
+function getBrowserPosition(): Promise<{ latitude: number; longitude: number }> {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    throw new Error('GPS is not supported in this browser.');
+  }
+
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) =>
+        resolve({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        }),
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          reject(
+            new Error(
+              'Location permission denied. Allow GPS access in your browser, then tap “Use My Current Location”.',
+            ),
+          );
+          return;
+        }
+        if (err.code === err.TIMEOUT) {
+          reject(new Error('GPS timed out. Try again or enter your address manually.'));
+          return;
+        }
+        reject(new Error('Could not get GPS location. Try again or enter your address manually.'));
+      },
+      { enableHighAccuracy: true, timeout: GPS_TIMEOUT_MS, maximumAge: 30000 },
+    );
+  });
+}
 
 export async function getPermissionStatus(): Promise<LocationPermission> {
   const result = await Location.getForegroundPermissionsAsync();
@@ -12,14 +57,25 @@ export async function getPermissionStatus(): Promise<LocationPermission> {
 }
 
 export async function requestDeviceLocation(): Promise<GeoLocation> {
-  const permission = await Location.requestForegroundPermissionsAsync();
-  if (permission.status !== 'granted') {
-    throw new Error('Location permission was not granted. You can still choose a location on the map.');
+  if (Platform.OS === 'web') {
+    const coords = await getBrowserPosition();
+    return reverseGeocode(coords.latitude, coords.longitude);
   }
 
-  const position = await Location.getCurrentPositionAsync({
-    accuracy: Location.Accuracy.Balanced,
-  });
+  const permission = await Location.requestForegroundPermissionsAsync();
+  if (permission.status !== 'granted') {
+    throw new Error(
+      'Location permission was not granted. Allow location access, then tap “Use My Current Location”.',
+    );
+  }
+
+  const position = await withTimeout(
+    Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Balanced,
+    }),
+    GPS_TIMEOUT_MS,
+    'Could not get GPS location in time. Try again or enter your address manually.',
+  );
 
   return reverseGeocode(position.coords.latitude, position.coords.longitude);
 }

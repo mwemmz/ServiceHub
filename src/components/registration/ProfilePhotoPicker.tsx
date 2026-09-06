@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RegColors } from '@/constants/registrationTheme';
 import { pickFromGallery, takePhoto } from '@/services/mediaPicker';
@@ -21,8 +21,13 @@ export function ProfilePhotoPicker({
   async function onCamera() {
     setBusy('camera');
     try {
-      const picked = await takePhoto({ allowsEditing: true, aspect: [1, 1] });
+      const picked = await takePhoto({ allowsEditing: false });
       if (picked) onChange(picked.uri);
+    } catch {
+      Alert.alert(
+        'Camera unavailable',
+        'Could not open the camera. Try choosing a photo from your gallery instead.',
+      );
     } finally {
       setBusy(null);
     }
@@ -33,6 +38,8 @@ export function ProfilePhotoPicker({
     try {
       const picked = await pickFromGallery({ allowsEditing: true, aspect: [1, 1] });
       if (picked) onChange(picked.uri);
+    } catch {
+      Alert.alert('Could not open gallery', 'Please try again.');
     } finally {
       setBusy(null);
     }

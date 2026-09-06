@@ -11,12 +11,14 @@ import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { AppShell } from '@/components/AppShell';
+import { BackButton } from '@/components/BackButton';
 import { GlassPanel } from '@/components/GlassPanel';
 import { LocationPinMap } from '@/components/LocationPinMap';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { SecondaryButton } from '@/components/SecondaryButton';
 import { Colors, FontSize, Radii } from '@/constants/theme';
 import { AppConfig } from '@/constants/config';
+import { useServiceRequestDraftReady } from '@/hooks/useServiceRequestDraftReady';
 import {
   getServiceRequestDraft,
   patchServiceRequestDraft,
@@ -31,6 +33,7 @@ import type { GeoLocation } from '@/types';
 /** Step 3 — exact service location: GPS, map pin, or address search. */
 export default function RequestLocationScreen() {
   const router = useRouter();
+  const draftReady = useServiceRequestDraftReady();
   const draft = getServiceRequestDraft();
   const [location, setLocation] = useState<GeoLocation | null>(draft?.location ?? null);
   const [query, setQuery] = useState('');
@@ -40,10 +43,14 @@ export default function RequestLocationScreen() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!draft) {
+    if (!draftReady) return;
+    const current = getServiceRequestDraft();
+    if (!current) {
       router.replace('/(customer)/categories' as Href);
+      return;
     }
-  }, [draft, router]);
+    if (current.location) setLocation(current.location);
+  }, [draftReady, router]);
 
   async function applyCoords(latitude: number, longitude: number, label?: string) {
     setError('');
@@ -109,11 +116,17 @@ export default function RequestLocationScreen() {
     router.push('/(customer)/request/confirm' as Href);
   }
 
+  if (!draftReady) return null;
+
   return (
     <AppShell keyboard>
-      <Pressable onPress={() => router.back()} style={styles.back}>
-        <Text style={styles.backText}>Back</Text>
-      </Pressable>
+      <BackButton
+        fallbackHref={
+          draft
+            ? (`/(customer)/request/detail?serviceId=${draft.serviceId}&categoryId=${draft.categoryId}` as Href)
+            : ('/(customer)/categories' as Href)
+        }
+      />
       <Text style={styles.title}>Service location</Text>
       <Text style={styles.sub}>
         Where should the provider come for{' '}
@@ -195,8 +208,6 @@ export default function RequestLocationScreen() {
 }
 
 const styles = StyleSheet.create({
-  back: { paddingVertical: 6, alignSelf: 'flex-start' },
-  backText: { color: Colors.accent, fontWeight: '700', fontSize: 15 },
   title: { color: Colors.charcoal, fontSize: FontSize.xxl, fontWeight: '800' },
   sub: { color: Colors.whiteSoft, lineHeight: 20, marginBottom: 12 },
   panel: { padding: 14, gap: 12 },

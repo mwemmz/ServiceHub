@@ -34,7 +34,11 @@ export default function VerifyScreen() {
 
   return (
     <Screen keyboard>
-      <ScreenHeader title="Verify your account" subtitle="Enter the 6-digit code for your email." />
+      <ScreenHeader
+        title="Verify your account"
+        subtitle="Enter the 6-digit code for your email."
+        fallbackHref={'/(auth)/login' as import('expo-router').Href}
+      />
       <GlassPanel borderRadius={24} contentStyle={styles.form}>
         {params.code ? (
           <View style={styles.notice}>

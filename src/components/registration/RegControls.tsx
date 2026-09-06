@@ -32,6 +32,7 @@ export function RegField({
   returnKeyType,
   onSubmitEditing,
   blurOnSubmit,
+  variant = 'default',
 }: {
   fieldKey?: string;
   /** When set, keyboard Next focuses this field key (keeps keyboard open). */
@@ -49,9 +50,13 @@ export function RegField({
   returnKeyType?: ReturnKeyTypeOptions;
   onSubmitEditing?: TextInputProps['onSubmitEditing'];
   blurOnSubmit?: boolean;
+  /** `glass` — premium translucent fields with soft grey/white glow (service details step). */
+  variant?: 'default' | 'glass';
 }) {
   const [hidden, setHidden] = useState(!!secureTextEntry);
   const [focused, setFocused] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const isGlass = variant === 'glass';
   const wrapRef = useRef<View>(null);
   const inputRef = useRef<TextInput>(null);
   const { registerField, registerInput, focusField, scrollToField } = useRegScroll();
@@ -90,24 +95,38 @@ export function RegField({
   return (
     <View
       ref={bindWrap}
-      style={styles.wrap}
+      style={[styles.wrap, isGlass && styles.glassWrap]}
       collapsable={false}
       nativeID={fieldKey ? `reg-field-${fieldKey}` : undefined}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, isGlass && styles.glassLabel]}>{label}</Text>
       <View
+        {...(Platform.OS === 'web'
+          ? ({
+              onMouseEnter: () => setHovered(true),
+              onMouseLeave: () => setHovered(false),
+            } as object)
+          : {})}
         style={[
           styles.field,
-          focused && styles.fieldFocused,
+          isGlass && styles.glassField,
+          isGlass && multiline && styles.glassFieldMultiline,
+          isGlass && hovered && !focused && styles.glassFieldHover,
+          focused && (isGlass ? styles.glassFieldFocused : styles.fieldFocused),
           error ? styles.fieldError : null,
           !editable && styles.disabled,
         ]}>
         <TextInput
           ref={bindInput}
-          style={[styles.input, multiline && styles.multiline]}
+          style={[
+            styles.input,
+            multiline && styles.multiline,
+            isGlass && styles.glassInput,
+            isGlass && multiline && styles.glassMultilineInput,
+          ]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="rgba(255,255,255,0.42)"
+          placeholderTextColor={isGlass ? 'rgba(255,255,255,0.48)' : 'rgba(255,255,255,0.42)'}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
           secureTextEntry={secureTextEntry ? hidden : false}
@@ -120,7 +139,13 @@ export function RegField({
           enablesReturnKeyAutomatically={false}
           onFocus={() => {
             setFocused(true);
-            if (fieldKey) scrollToField(fieldKey);
+            if (fieldKey) {
+              scrollToField(fieldKey);
+              if (Platform.OS === 'web') {
+                setTimeout(() => scrollToField(fieldKey), 120);
+                setTimeout(() => scrollToField(fieldKey), 320);
+              }
+            }
           }}
           onBlur={() => setFocused(false)}
           underlineColorAndroid="transparent"
@@ -161,14 +186,23 @@ export function RegPrimaryButton({
   loading,
   loadingLabel = 'Please wait…',
   disabled,
+  style,
+  variant = 'default',
 }: {
   label: string;
   onPress: () => void;
   loading?: boolean;
   loadingLabel?: string;
   disabled?: boolean;
+  style?: object;
+  /** `reference` — warm tan pill from service-category mockup */
+  variant?: 'default' | 'reference';
 }) {
   const blocked = disabled || loading;
+  const gradient =
+    variant === 'reference'
+      ? (['#DDB07A', '#C9A06C', '#C4894A'] as const)
+      : (['#E8B07A', RegColors.gold, RegColors.goldDeep] as const);
   return (
     <Pressable
       accessibilityRole="button"
@@ -176,11 +210,12 @@ export function RegPrimaryButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.primaryOuter,
+        style,
         blocked && styles.primaryDisabled,
         pressed && !blocked && { opacity: 0.9 },
       ]}>
       <LinearGradient
-        colors={['#E8B07A', RegColors.gold, RegColors.goldDeep]}
+        colors={[...gradient]}
         start={{ x: 0, y: 0.5 }}
         end={{ x: 1, y: 0.5 }}
         style={styles.primary}>
@@ -295,8 +330,84 @@ const styles = StyleSheet.create({
       : {}),
   },
   multiline: { minHeight: 88 },
-  errorRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  error: { color: RegColors.error, fontSize: 12, flex: 1 },
+  /** Provider form — comfortable readable sizes for glass fields */
+  glassWrap: { gap: 8 },
+  glassLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.94)',
+    letterSpacing: 0.1,
+  },
+  glassField: {
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(210, 218, 228, 0.48)',
+    backgroundColor: 'rgba(118, 108, 98, 0.16)',
+    paddingHorizontal: 16,
+    minHeight: 54,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#D8DCE4',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.28,
+        shadowRadius: 6,
+      },
+      android: { elevation: 2 },
+      web: {
+        backdropFilter: 'blur(8px) saturate(120%)',
+        WebkitBackdropFilter: 'blur(8px) saturate(120%)',
+        boxShadow:
+          '0 0 0 1px rgba(200, 208, 220, 0.18), 0 0 10px rgba(180, 188, 200, 0.22)',
+        transition: 'border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease',
+      } as object,
+      default: {},
+    }),
+  },
+  glassFieldMultiline: {
+    alignItems: 'flex-start',
+    paddingVertical: 4,
+    minHeight: 100,
+  },
+  glassFieldHover: Platform.select({
+    web: {
+      borderColor: 'rgba(228, 234, 244, 0.62)',
+      boxShadow:
+        '0 0 0 1px rgba(210, 218, 230, 0.28), 0 0 14px rgba(195, 203, 215, 0.32)',
+    } as object,
+    default: {},
+  }),
+  glassFieldFocused: {
+    borderColor: 'rgba(242, 246, 252, 0.82)',
+    backgroundColor: 'rgba(130, 120, 110, 0.22)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#E8ECF4',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 12,
+      },
+      android: { elevation: 6 },
+      web: {
+        boxShadow:
+          '0 0 0 1px rgba(230, 236, 246, 0.45), 0 0 18px rgba(210, 218, 230, 0.48)',
+      } as object,
+      default: {},
+    }),
+  },
+  glassInput: {
+    paddingVertical: 14,
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  glassMultilineInput: {
+    minHeight: 100,
+    paddingTop: 12,
+    paddingBottom: 12,
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  errorRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
+  error: { color: RegColors.error, fontSize: 13, flex: 1, lineHeight: 18 },
   errorBanner: {
     color: RegColors.error,
     fontSize: 13,
@@ -318,7 +429,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
   },
   primaryDisabled: { opacity: 0.45 },
-  primaryLabel: { color: '#FFFFFF', fontWeight: '800', fontSize: 15 },
+  primaryLabel: { color: '#FFFFFF', fontWeight: '800', fontSize: 16 },
   secondary: {
     minHeight: 48,
     borderRadius: 999,
@@ -331,5 +442,5 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
   },
-  secondaryLabel: { color: RegColors.white, fontWeight: '700', fontSize: 14 },
+  secondaryLabel: { color: RegColors.white, fontWeight: '700', fontSize: 15 },
 });

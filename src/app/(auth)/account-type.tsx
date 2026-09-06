@@ -20,6 +20,7 @@ import { GlassPanel } from '@/components/GlassPanel';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { BrandImages } from '@/constants/assets';
 import { RegColors, ScriptFont } from '@/constants/registrationTheme';
+import { resetCustomerRegistrationDraft } from '@/services/customerRegistrationDraft';
 import { useAuth } from '@/context/AuthContext';
 import { signInWithGoogle } from '@/services/googleSignIn';
 
@@ -29,14 +30,17 @@ type Feature = { icon: keyof typeof Ionicons.glyphMap; label: string };
 
 /**
  * Get Started — layout matched to the uploaded ServiceHub reference image:
- * top-left brand, Get Started / Your Way script, side-by-side glass cards,
- * gold/blue CTAs with arrow pills, full-width Google, Sign In →
+ * top-left brand, Get Started / Your Way script, glass cards (side-by-side on
+ * tablet/desktop, stacked on phones), gold/blue CTAs, Google, Sign In →
  */
+const SIDE_BY_SIDE_MIN_WIDTH = 700;
+
 export default function WelcomeScreen() {
   const router = useRouter();
   const { completeOnboarding } = useAuth();
   const { width } = useWindowDimensions();
-  const sideBySide = width >= 360;
+  const sideBySide = width >= SIDE_BY_SIDE_MIN_WIDTH;
+  const compact = width < 400;
 
   useEffect(() => {
     completeOnboarding().catch(() => undefined);
@@ -60,7 +64,8 @@ export default function WelcomeScreen() {
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom', 'left', 'right']}>
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scroll, compact && styles.scrollCompact]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           bounces={false}>
@@ -69,8 +74,8 @@ export default function WelcomeScreen() {
             <LinearGradient colors={['#E8A86A', RegColors.goldDeep]} style={styles.pin}>
               <Ionicons name="location" size={18} color="#FFFFFF" />
             </LinearGradient>
-            <View>
-              <Text style={styles.brandTitle}>
+            <View style={styles.brandTextCol}>
+              <Text style={[styles.brandTitle, compact && styles.brandTitleCompact]}>
                 Service<Text style={styles.brandHub}>Hub</Text>
               </Text>
               <Text style={styles.brandTag}>— SOLUTIONS, NEAR YOU —</Text>
@@ -79,8 +84,8 @@ export default function WelcomeScreen() {
 
           {/* Hero */}
           <View style={styles.hero}>
-            <Text style={styles.heroMain}>Get Started</Text>
-            <Text style={styles.heroScript}>Your Way</Text>
+            <Text style={[styles.heroMain, compact && styles.heroMainCompact]}>Get Started</Text>
+            <Text style={[styles.heroScript, compact && styles.heroScriptCompact]}>Your Way</Text>
             <Text style={styles.heroSub}>Choose the account that fits what you need today.</Text>
           </View>
 
@@ -102,7 +107,11 @@ export default function WelcomeScreen() {
               buttonLabel="Create Customer Account"
               buttonVariant="gold"
               stretch={sideBySide}
-              onPress={() => router.push('/(auth)/register')}
+              stacked={!sideBySide}
+              onPress={() => {
+                void resetCustomerRegistrationDraft();
+                router.push({ pathname: '/(auth)/register', params: { step: '1' } });
+              }}
             />
             <AccountGlassCard
               icon={
@@ -120,6 +129,7 @@ export default function WelcomeScreen() {
               buttonLabel="Create Provider Account"
               buttonVariant="blue"
               stretch={sideBySide}
+              stacked={!sideBySide}
               onPress={() => router.push('/(auth)/register-provider' as Href)}
             />
           </View>
@@ -169,6 +179,7 @@ function AccountGlassCard({
   buttonLabel,
   buttonVariant,
   stretch,
+  stacked,
   onPress,
 }: {
   icon: ReactNode;
@@ -178,23 +189,30 @@ function AccountGlassCard({
   buttonLabel: string;
   buttonVariant: 'gold' | 'blue';
   stretch: boolean;
+  stacked: boolean;
   onPress: () => void;
 }) {
   return (
-    <View style={{ flex: stretch ? 1 : undefined, width: stretch ? undefined : '100%' }}>
+    <View
+      style={{
+        flex: stretch ? 1 : undefined,
+        width: stretch ? undefined : '100%',
+        minWidth: 0,
+        maxWidth: '100%',
+      }}>
       <GlassPanel
         borderRadius={26}
         intensity="medium"
         style={stretch ? { flex: 1 } : undefined}
-        contentStyle={styles.card}>
+        contentStyle={[styles.card, stacked && styles.cardStacked]}>
         <View style={styles.cardIconWrap}>{icon}</View>
-        <Text style={styles.cardTitle}>{title}</Text>
-        <Text style={styles.cardBody}>{body}</Text>
+        <Text style={[styles.cardTitle, stacked && styles.cardTitleStacked]}>{title}</Text>
+        <Text style={[styles.cardBody, stacked && styles.cardBodyStacked]}>{body}</Text>
         <View style={styles.featList}>
           {features.map((f) => (
             <View key={f.label} style={styles.featRow}>
               <Ionicons name={f.icon} size={14} color="rgba(255,255,255,0.95)" />
-              <Text style={styles.featText}>{f.label}</Text>
+              <Text style={[styles.featText, stacked && styles.featTextStacked]}>{f.label}</Text>
             </View>
           ))}
         </View>
@@ -202,7 +220,6 @@ function AccountGlassCard({
           label={buttonLabel}
           onPress={onPress}
           variant={buttonVariant}
-          withArrow
           style={styles.cta}
         />
       </GlassPanel>
@@ -214,10 +231,18 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: RegColors.rootBg },
   bgImage: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
   safe: { flex: 1 },
+  scrollView: { flex: 1 },
   scroll: {
     paddingHorizontal: 16,
     paddingTop: 6,
     paddingBottom: 28,
+    width: '100%',
+    maxWidth: 980,
+    alignSelf: 'center',
+  },
+  scrollCompact: {
+    paddingHorizontal: 14,
+    paddingBottom: 36,
   },
   brand: {
     flexDirection: 'row',
@@ -225,19 +250,27 @@ const styles = StyleSheet.create({
     gap: 10,
     alignSelf: 'flex-start',
     marginBottom: 20,
+    maxWidth: '100%',
   },
+  brandTextCol: { flexShrink: 1, minWidth: 0 },
   pin: {
     width: 40,
     height: 40,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   brandTitle: {
     color: '#FFFFFF',
     fontSize: 26,
+    lineHeight: 32,
     fontWeight: '700',
     letterSpacing: 0.2,
+  },
+  brandTitleCompact: {
+    fontSize: 22,
+    lineHeight: 28,
   },
   brandHub: {
     color: RegColors.gold,
@@ -255,15 +288,26 @@ const styles = StyleSheet.create({
   heroMain: {
     color: '#FFFFFF',
     fontSize: 34,
+    lineHeight: 40,
     fontWeight: '800',
     letterSpacing: 0.2,
+  },
+  heroMainCompact: {
+    fontSize: 30,
+    lineHeight: 36,
   },
   heroScript: {
     color: RegColors.gold,
     fontSize: 38,
+    lineHeight: 48,
     fontFamily: SCRIPT,
-    marginTop: -6,
+    marginTop: -2,
     marginBottom: 10,
+    paddingTop: 4,
+  },
+  heroScriptCompact: {
+    fontSize: 34,
+    lineHeight: 44,
   },
   heroSub: {
     color: 'rgba(255,255,255,0.9)',
@@ -285,7 +329,13 @@ const styles = StyleSheet.create({
     minHeight: 300,
     flexGrow: 1,
   },
-  cardIconWrap: { marginBottom: 10 },
+  cardStacked: {
+    minHeight: 0,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    alignItems: 'stretch',
+  },
+  cardIconWrap: { marginBottom: 10, alignSelf: 'center' },
   /** Tan/gold circle + white person — reference Customer badge */
   customerBadge: {
     width: 56,
@@ -311,9 +361,14 @@ const styles = StyleSheet.create({
   cardTitle: {
     color: '#FFFFFF',
     fontSize: 17,
+    lineHeight: 22,
     fontWeight: '800',
     marginBottom: 6,
     textAlign: 'center',
+  },
+  cardTitleStacked: {
+    fontSize: 20,
+    lineHeight: 26,
   },
   cardBody: {
     color: 'rgba(255,255,255,0.86)',
@@ -321,6 +376,11 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     textAlign: 'center',
     marginBottom: 12,
+  },
+  cardBodyStacked: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'left',
   },
   featList: { width: '100%', marginBottom: 10, flexGrow: 1 },
   featRow: {
@@ -333,7 +393,13 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.94)',
     fontSize: 11,
     flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
     lineHeight: 15,
+  },
+  featTextStacked: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   cta: { width: '100%', marginTop: 4 },
   orRow: {
@@ -359,6 +425,7 @@ const styles = StyleSheet.create({
   googleText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
   signInRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 18,

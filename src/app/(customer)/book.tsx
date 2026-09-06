@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
@@ -13,18 +13,38 @@ import { Colors, FontSize, Radii } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useAppLocation } from '@/context/LocationContext';
 import { useAsyncData } from '@/hooks/useAsyncData';
+import { clearPersistedState, usePersistedState } from '@/hooks/usePersistedState';
 import { getProviderById } from '@/services/providerService';
 import { getService } from '@/services/catalogService';
 import { createBooking } from '@/services/bookingService';
+import { StorageKeys } from '@/services/storage';
 import { calculatePrice } from '@/utils/format';
+
+type BookingDraft = {
+  providerId: string;
+  serviceId: string;
+  notes: string;
+  when: string;
+};
 
 export default function BookScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { location } = useAppLocation();
   const { providerId, serviceId } = useLocalSearchParams<{ providerId: string; serviceId: string }>();
-  const [notes, setNotes] = useState('Please call when you arrive.');
-  const [when, setWhen] = useState(() => new Date(Date.now() + 1000 * 60 * 60).toISOString().slice(0, 16));
+  const draftKey = useMemo(
+    () => `${StorageKeys.draftBooking}:${providerId}:${serviceId}`,
+    [providerId, serviceId],
+  );
+  const defaultWhen = new Date(Date.now() + 1000 * 60 * 60).toISOString().slice(0, 16);
+  const [draft, setDraft] = usePersistedState<BookingDraft>(draftKey, {
+    providerId: providerId ?? '',
+    serviceId: serviceId ?? '',
+    notes: 'Please call when you arrive.',
+    when: defaultWhen,
+  });
+  const notes = draft.providerId === providerId && draft.serviceId === serviceId ? draft.notes : 'Please call when you arrive.';
+  const when = draft.providerId === providerId && draft.serviceId === serviceId ? draft.when : defaultWhen;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -57,6 +77,7 @@ export default function BookScreen() {
         notes,
         location,
       });
+      await clearPersistedState(draftKey);
       router.replace(`/(customer)/booking/${booking.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create booking.');
@@ -76,8 +97,33 @@ export default function BookScreen() {
         <Text style={styles.label}>Location</Text>
         <Text style={styles.value}>{location?.address ?? 'Location not set'}</Text>
       </View>
-      <InputField label="Date and time" value={when} onChangeText={setWhen} placeholder="YYYY-MM-DDTHH:mm" />
-      <InputField label="Notes" value={notes} onChangeText={setNotes} placeholder="Anything the provider should know" multiline />
+      <InputField
+        label="Date and time"
+        value={when}
+        onChangeText={(value) =>
+          setDraft((prev) => ({
+            ...prev,
+            providerId: providerId ?? '',
+            serviceId: serviceId ?? '',
+            when: value,
+          }))
+        }
+        placeholder="YYYY-MM-DDTHH:mm"
+      />
+      <InputField
+        label="Notes"
+        value={notes}
+        onChangeText={(value) =>
+          setDraft((prev) => ({
+            ...prev,
+            providerId: providerId ?? '',
+            serviceId: serviceId ?? '',
+            notes: value,
+          }))
+        }
+        placeholder="Anything the provider should know"
+        multiline
+      />
       <View style={styles.card}>
         <PriceBreakdownView price={price} />
       </View>

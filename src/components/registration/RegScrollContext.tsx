@@ -35,28 +35,75 @@ export function focusRegField(key: string): void {
   activeScrollApi?.focusField(key);
 }
 
+function findScrollableParent(el: HTMLElement | null): HTMLElement | null {
+  let node = el?.parentElement ?? null;
+  while (node) {
+    const style = window.getComputedStyle(node);
+    const overflowY = style.overflowY;
+    if (overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay') {
+      return node;
+    }
+    node = node.parentElement;
+  }
+  return null;
+}
+
+function resolveFieldElement(target: View, fieldKey: string): HTMLElement | null {
+  if (typeof document !== 'undefined' && fieldKey) {
+    const byId = document.getElementById(`reg-field-${fieldKey}`);
+    if (byId) return byId;
+  }
+
+  const anyTarget = target as unknown as {
+    _nativeNode?: HTMLElement;
+    getNode?: () => HTMLElement | null;
+  };
+  return (
+    anyTarget._nativeNode ??
+    (typeof anyTarget.getNode === 'function' ? anyTarget.getNode() : null) ??
+    (target as unknown as HTMLElement | null)
+  );
+}
+
 function scrollFieldIntoViewWeb(target: View, fieldKey: string) {
   try {
-    if (typeof document !== 'undefined' && fieldKey) {
-      const byId = document.getElementById(`reg-field-${fieldKey}`);
-      if (byId && typeof byId.scrollIntoView === 'function') {
-        byId.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return;
+    if (typeof window === 'undefined') return;
+
+    const el = resolveFieldElement(target, fieldKey);
+    if (!el) return;
+
+    const vv = window.visualViewport;
+    const viewportTop = vv?.offsetTop ?? 0;
+    const viewportHeight = vv?.height ?? window.innerHeight;
+    const keyboardPadding = 24;
+    const headerPadding = 72;
+    const visibleBottom = viewportTop + viewportHeight - keyboardPadding;
+
+    const rect = el.getBoundingClientRect();
+
+    if (rect.bottom > visibleBottom) {
+      const delta = rect.bottom - visibleBottom + 12;
+      const scrollParent = findScrollableParent(el);
+      if (scrollParent) {
+        scrollParent.scrollTop += delta;
+      } else {
+        window.scrollBy({ top: delta, behavior: 'smooth' });
       }
+      return;
     }
 
-    const anyTarget = target as unknown as {
-      _nativeNode?: HTMLElement;
-      getNode?: () => HTMLElement | null;
-    };
-    const host =
-      anyTarget._nativeNode ??
-      (typeof anyTarget.getNode === 'function' ? anyTarget.getNode() : null) ??
-      (target as unknown as HTMLElement | null);
-
-    if (host && typeof host.scrollIntoView === 'function') {
-      host.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (rect.top < viewportTop + headerPadding) {
+      const delta = rect.top - (viewportTop + headerPadding);
+      const scrollParent = findScrollableParent(el);
+      if (scrollParent) {
+        scrollParent.scrollTop += delta;
+      } else {
+        window.scrollBy({ top: delta, behavior: 'smooth' });
+      }
+      return;
     }
+
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   } catch {
     // ignore
   }
@@ -95,10 +142,13 @@ export function RegScrollProvider({
       try {
         if (Platform.OS === 'web') {
           scrollFieldIntoViewWeb(target, key);
+          // Mobile browsers animate the keyboard in — re-scroll after it opens.
+          setTimeout(() => scrollFieldIntoViewWeb(target, key), 120);
+          setTimeout(() => scrollFieldIntoViewWeb(target, key), 320);
           return;
         }
-        target.measureInWindow((_fx, fy) => {
-          scroll.scrollTo({ y: Math.max(0, fy - 120), animated: true });
+        target.measureInWindow((_fx, fy, _fw, fh) => {
+          scroll.scrollTo({ y: Math.max(0, fy + fh - 280), animated: true });
         });
       } catch {
         // never crash the form

@@ -1,30 +1,31 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { StyleSheet, Text, View } from 'react-native';
+import type { Href } from 'expo-router';
+import { BackButton } from '@/components/BackButton';
 import { Colors, FontSize } from '@/constants/theme';
 
 interface Props {
   title: string;
   subtitle?: string;
   onBack?: () => void;
+  fallbackHref?: Href;
   right?: ReactNode;
   /** When false, hide the back control (e.g. tab roots). */
   showBack?: boolean;
 }
 
-export function ScreenHeader({ title, subtitle, onBack, right, showBack = true }: Props) {
-  const router = useRouter();
+export function ScreenHeader({
+  title,
+  subtitle,
+  onBack,
+  fallbackHref,
+  right,
+  showBack = true,
+}: Props) {
   return (
     <View style={styles.wrap}>
       {showBack ? (
-        <Pressable
-          onPress={onBack ?? (() => router.back())}
-          style={styles.back}
-          accessibilityRole="button"
-          accessibilityLabel="Go back">
-          <Text style={styles.backLabel}>Back</Text>
-        </Pressable>
+        <BackButton onPress={onBack} fallbackHref={fallbackHref} />
       ) : (
         <View style={styles.spacer} />
       )}
@@ -45,8 +46,6 @@ export function ScreenHeader({ title, subtitle, onBack, right, showBack = true }
 
 const styles = StyleSheet.create({
   wrap: { gap: 6, paddingVertical: 8 },
-  back: { alignSelf: 'flex-start', paddingVertical: 4 },
-  backLabel: { color: Colors.accent, fontWeight: '700', fontSize: 15 },
   spacer: { height: 8 },
   center: { gap: 4 },
   title: { color: Colors.charcoal, fontSize: 26, fontWeight: '800' },

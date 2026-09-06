@@ -18,6 +18,10 @@ export async function setJson<T>(key: string, value: T): Promise<void> {
   await AsyncStorage.setItem(key, JSON.stringify(value));
 }
 
+export async function removeJson(key: string): Promise<void> {
+  await AsyncStorage.removeItem(key);
+}
+
 export async function getSecure(key: string): Promise<string | null> {
   if (Platform.OS === 'web') {
     return memoryStore.get(key) ?? (await AsyncStorage.getItem(`secure:${key}`));
@@ -60,4 +64,12 @@ export const StorageKeys = {
   verifyCodes: 'servicehub.verifyCodes',
   seeded: 'servicehub.seeded',
   providerApplications: 'servicehub.providerApplications',
+  draftCustomerRegistration: 'servicehub.draft.customerRegistration',
+  draftProviderRegistration: 'servicehub.draft.providerRegistration',
+  draftServiceRequest: 'servicehub.draft.serviceRequest',
+  draftLogin: 'servicehub.draft.login',
+  draftBooking: 'servicehub.draft.booking',
+  draftProviderSetup: 'servicehub.draft.providerSetup',
+  draftProviderAvailability: 'servicehub.draft.providerAvailability',
+  draftSettings: 'servicehub.draft.settings',
 } as const;

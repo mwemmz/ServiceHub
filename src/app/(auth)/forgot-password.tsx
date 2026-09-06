@@ -39,6 +39,7 @@ export default function ForgotPasswordScreen() {
       <ScreenHeader
         title="Forgot password"
         subtitle="We will generate a local reset code until email is connected."
+        fallbackHref={'/(auth)/login' as import('expo-router').Href}
       />
       <GlassPanel borderRadius={24} contentStyle={styles.form}>
         <InputField

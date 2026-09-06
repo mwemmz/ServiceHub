@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { AppShell } from '@/components/AppShell';
+import { BackButton } from '@/components/BackButton';
 import { GlassPanel } from '@/components/GlassPanel';
 import { LoadingState } from '@/components/LoadingState';
 import { Colors, FontSize, Radii, Spacing } from '@/constants/theme';
@@ -83,17 +84,12 @@ export default function RequestServicesScreen() {
 
   return (
     <AppShell>
-      <Pressable
-        onPress={() => {
-          if (id === 'beauty' && beautyBranch) {
-            setBeautyBranch(null);
-            return;
-          }
-          router.replace('/(customer)/categories' as Href);
-        }}
-        style={styles.back}>
-        <Text style={styles.backText}>Back</Text>
-      </Pressable>
+      <BackButton
+        onPress={
+          id === 'beauty' && beautyBranch ? () => setBeautyBranch(null) : undefined
+        }
+        fallbackHref={'/(customer)/categories' as Href}
+      />
       <Text style={styles.title}>{category?.name ?? 'Services'}</Text>
       <Text style={styles.sub}>
         {isBeautyPicker
@@ -185,8 +181,6 @@ export default function RequestServicesScreen() {
 }
 
 const styles = StyleSheet.create({
-  back: { paddingVertical: 8, alignSelf: 'flex-start' },
-  backText: { color: Colors.accent, fontWeight: '700', fontSize: 15 },
   title: { color: Colors.charcoal, fontSize: FontSize.xxl, fontWeight: '800' },
   sub: { color: Colors.whiteSoft, marginTop: 4, marginBottom: 14, lineHeight: 20 },
   panel: { padding: 12, gap: 10 },

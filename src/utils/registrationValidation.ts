@@ -55,6 +55,15 @@ export function isValidZambianNrc(raw: string): boolean {
   return /^\d{6}\/\d{2}\/\d$/.test(cleaned);
 }
 
+/** Accepts YYYY-MM-DD or YYYY/MM/DD */
+export function isValidDateOfBirth(raw: string): boolean {
+  return /^\d{4}[-/]\d{2}[-/]\d{2}$/.test(raw.trim());
+}
+
+export function normalizeDateOfBirth(raw: string): string {
+  return raw.trim().replace(/\//g, '-');
+}
+
 export function friendlyAuthError(err: unknown): string {
   if (!(err instanceof Error)) return 'Something went wrong. Please try again.';
   const msg = err.message || '';

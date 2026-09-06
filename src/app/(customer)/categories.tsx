@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { AppShell } from '@/components/AppShell';
+import { BackButton } from '@/components/BackButton';
 import { GlassPanel } from '@/components/GlassPanel';
 import { LoadingState } from '@/components/LoadingState';
 import { Colors, FontSize } from '@/constants/theme';
@@ -35,6 +36,7 @@ export default function ServiceCategoriesScreen() {
 
   return (
     <AppShell>
+      <BackButton fallbackHref={'/(customer)/(tabs)' as Href} />
       <View style={styles.top}>
         <View style={{ flex: 1 }}>
           <Text style={styles.brand}>

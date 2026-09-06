@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { PasswordStrength } from '@/components/registration/PasswordStrength';
 import {
@@ -10,11 +10,21 @@ import {
   RegSecondaryButton,
 } from '@/components/registration/RegControls';
 import { ProfilePhotoPicker } from '@/components/registration/ProfilePhotoPicker';
+import { AuthSignInLink } from '@/components/registration/AuthSignInLink';
 import { useRegScroll } from '@/components/registration/RegScrollContext';
 import { RegShell } from '@/components/registration/RegShell';
 import { RegColors } from '@/constants/registrationTheme';
+import { useCustomerRegistrationBack } from '@/hooks/useCustomerRegistrationBack';
 import { useAuth } from '@/context/AuthContext';
 import { updateUser } from '@/services/authService';
+import {
+  CUSTOMER_REGISTER_TOTAL_STEPS,
+  getCustomerRegistrationDraft,
+  hydrateCustomerRegistrationDraft,
+  parseRegisterStep,
+  patchCustomerRegistrationDraft,
+  resetCustomerRegistrationDraft,
+} from '@/services/customerRegistrationDraft';
 import {
   friendlyAuthError,
   isStrongPassword,
@@ -23,28 +33,7 @@ import {
   normalizeZambianPhone,
 } from '@/utils/registrationValidation';
 
-/** Location is collected AFTER account creation in the service-request flow. */
-const TOTAL = 4;
-
-type Form = {
-  firstName: string;
-  lastName: string;
-  phone: string;
-  email: string;
-  password: string;
-  confirm: string;
-  avatarUri: string;
-};
-
-const initial: Form = {
-  firstName: '',
-  lastName: '',
-  phone: '',
-  email: '',
-  password: '',
-  confirm: '',
-  avatarUri: '',
-};
+const TOTAL = CUSTOMER_REGISTER_TOTAL_STEPS;
 
 function firstErrorKey(errors: Record<string, string>, order: string[]): string | null {
   for (const key of order) {
@@ -54,9 +43,9 @@ function firstErrorKey(errors: Record<string, string>, order: string[]): string 
 }
 
 export default function CustomerRegisterScreen() {
-  const router = useRouter();
-  const [step, setStep] = useState(1);
-  const [form, setForm] = useState<Form>(initial);
+  const { step: stepParam } = useLocalSearchParams<{ step?: string }>();
+  const step = parseRegisterStep(stepParam);
+  const goBack = useCustomerRegistrationBack(step);
 
   const titles: Record<number, { title: string; subtitle?: string }> = {
     1: { title: 'Create Your Account', subtitle: "Let's get to know you." },
@@ -69,47 +58,39 @@ export default function CustomerRegisterScreen() {
   };
   const meta = titles[step];
 
-  function goBack() {
-    if (step <= 1) {
-      router.replace('/(auth)/account-type' as Href);
-      return;
-    }
-    setStep((s) => s - 1);
-  }
-
   return (
     <RegShell
       onBack={goBack}
+      backLabel="Back"
+      showBackIcon
       step={step}
       totalSteps={TOTAL}
       title={meta.title}
       subtitle={meta.subtitle}>
-      <CustomerSteps step={step} setStep={setStep} form={form} setForm={setForm} />
+      <CustomerSteps step={step} />
     </RegShell>
   );
 }
 
-function CustomerSteps({
-  step,
-  setStep,
-  form,
-  setForm,
-}: {
-  step: number;
-  setStep: (n: number | ((s: number) => number)) => void;
-  form: Form;
-  setForm: (f: Form | ((prev: Form) => Form)) => void;
-}) {
+function CustomerSteps({ step }: { step: number }) {
   const router = useRouter();
   const { register, refresh } = useAuth();
   const { scrollToField } = useRegScroll();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [banner, setBanner] = useState('');
   const [loading, setLoading] = useState(false);
+  const [, setRevision] = useState(0);
+  const [hydrated, setHydrated] = useState(false);
 
-  function patch(partial: Partial<Form>) {
-    setForm((prev) => ({ ...prev, ...partial }));
-    // Clear field errors as the user types — don't keep blocking after a fix
+  useEffect(() => {
+    hydrateCustomerRegistrationDraft().then(() => setHydrated(true));
+  }, []);
+
+  const form = getCustomerRegistrationDraft();
+
+  function patch(partial: Partial<ReturnType<typeof getCustomerRegistrationDraft>>) {
+    patchCustomerRegistrationDraft(partial);
+    setRevision((n) => n + 1);
     const keys = Object.keys(partial);
     if (keys.length) {
       setErrors((prev) => {
@@ -124,6 +105,13 @@ function CustomerSteps({
     () => `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
     [form.firstName, form.lastName],
   );
+
+  function pushStep(nextStep: number) {
+    router.push({
+      pathname: '/(auth)/register',
+      params: { step: String(nextStep) },
+    } as Href);
+  }
 
   function validateStep(s: number): { ok: boolean; errors: Record<string, string>; order: string[] } {
     const next: Record<string, string> = {};
@@ -171,7 +159,7 @@ function CustomerSteps({
     setBanner('');
     if (!applyValidation(step)) return;
     if (step === 1) patch({ phone: normalizeZambianPhone(form.phone) });
-    setStep((s) => Math.min(TOTAL, s + 1));
+    pushStep(Math.min(TOTAL, step + 1));
   }
 
   async function onCreateAccount() {
@@ -180,7 +168,7 @@ function CustomerSteps({
       if (!result.ok) {
         setBanner('Please complete all required steps before creating your account.');
         setErrors(result.errors);
-        setStep(s);
+        pushStep(s);
         requestAnimationFrame(() => {
           const key = firstErrorKey(result.errors, result.order);
           if (key) scrollToField(key);
@@ -210,12 +198,21 @@ function CustomerSteps({
         // best-effort
       }
 
-      router.replace('/(auth)/account-success' as Href);
+      router.push('/(auth)/account-success' as Href);
+      await resetCustomerRegistrationDraft();
     } catch (err) {
       setBanner(friendlyAuthError(err));
     } finally {
       setLoading(false);
     }
+  }
+
+  if (!hydrated) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator color={RegColors.gold} />
+      </View>
+    );
   }
 
   if (step === 1) {
@@ -227,6 +224,7 @@ function CustomerSteps({
         <RegField fieldKey="email" label="Email Address" value={form.email} onChangeText={(email) => patch({ email })} placeholder="you@email.com" keyboardType="email-address" error={errors.email} returnKeyType="done" onSubmitEditing={goNext} />
         <RegError message={banner} />
         <RegPrimaryButton label="Continue" onPress={goNext} />
+        <AuthSignInLink />
       </>
     );
   }
@@ -258,7 +256,7 @@ function CustomerSteps({
       <View style={styles.summaryCard}>
         <View style={styles.summaryHead}>
           <Text style={styles.summaryTitle}>Personal Information</Text>
-          <Pressable onPress={() => setStep(1)}>
+          <Pressable onPress={() => pushStep(1)}>
             <Text style={styles.edit}>Edit</Text>
           </Pressable>
         </View>
@@ -269,7 +267,7 @@ function CustomerSteps({
       <View style={styles.summaryCard}>
         <View style={styles.summaryHead}>
           <Text style={styles.summaryTitle}>Profile Photo</Text>
-          <Pressable onPress={() => setStep(3)}>
+          <Pressable onPress={() => pushStep(3)}>
             <Text style={styles.edit}>Edit</Text>
           </Pressable>
         </View>
@@ -304,4 +302,5 @@ const styles = StyleSheet.create({
   edit: { color: RegColors.gold, fontWeight: '700', fontSize: 13 },
   summaryLine: { color: RegColors.whiteSoft, fontSize: 13, lineHeight: 18 },
   avatarPreview: { width: 64, height: 64, borderRadius: 32, marginTop: 6 },
+  loading: { alignItems: 'center', justifyContent: 'center', paddingVertical: 32 },
 });

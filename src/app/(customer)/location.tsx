@@ -50,7 +50,11 @@ export default function LocationScreen() {
 
   return (
     <Screen scroll>
-      <ScreenHeader title="Your location" subtitle="Used for nearby providers, distance and arrival estimates." />
+      <ScreenHeader
+        title="Your location"
+        subtitle="Used for nearby providers, distance and arrival estimates."
+        fallbackHref="/(customer)/(tabs)/profile"
+      />
       <ServiceMap customer={location} height={220} />
       <Text style={styles.hint}>
         This is not a fake GPS location. Until you allow location access or type an address, ServiceHub will not pretend to know where you are.

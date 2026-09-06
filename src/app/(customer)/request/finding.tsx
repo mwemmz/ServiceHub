@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { AppShell } from '@/components/AppShell';
+import { BackButton } from '@/components/BackButton';
 import { GlassPanel } from '@/components/GlassPanel';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { SecondaryButton } from '@/components/SecondaryButton';
@@ -22,7 +23,7 @@ export default function FindingProviderScreen() {
   }, []);
 
   function finish() {
-    clearServiceRequestDraft();
+    void clearServiceRequestDraft();
     if (bookingId) {
       router.replace(`/(customer)/booking/${bookingId}` as Href);
     } else {
@@ -32,6 +33,7 @@ export default function FindingProviderScreen() {
 
   return (
     <AppShell scroll={false} contentStyle={styles.centerContent}>
+      <BackButton fallbackHref={'/(customer)/categories' as Href} />
       <ActivityIndicator size="large" color={Colors.accent} />
       <Text style={styles.title}>Finding a Service Provider…</Text>
       <Text style={styles.body}>
@@ -53,7 +55,7 @@ export default function FindingProviderScreen() {
             <SecondaryButton
               label="Browse more services"
               onPress={() => {
-                clearServiceRequestDraft();
+                void clearServiceRequestDraft();
                 router.replace('/(customer)/categories' as Href);
               }}
             />

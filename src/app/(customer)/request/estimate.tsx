@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { AppShell } from '@/components/AppShell';
+import { BackButton } from '@/components/BackButton';
 import { GlassPanel } from '@/components/GlassPanel';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Colors, FontSize } from '@/constants/theme';
@@ -10,6 +11,7 @@ import { useAuth } from '@/context/AuthContext';
 import { createBooking } from '@/services/bookingService';
 import { getNearbyProviders, getProvidersForService } from '@/services/providerService';
 import { getServiceRequestDraft } from '@/services/serviceRequestDraft';
+import { useServiceRequestDraftReady } from '@/hooks/useServiceRequestDraftReady';
 import { calculatePrice, formatKwacha } from '@/utils/format';
 import { distanceKm } from '@/services/locationService';
 
@@ -17,6 +19,7 @@ import { distanceKm } from '@/services/locationService';
 export default function EstimateScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const draftReady = useServiceRequestDraftReady();
   const draft = getServiceRequestDraft();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -28,19 +31,21 @@ export default function EstimateScreen() {
   );
 
   useEffect(() => {
-    if (!draft?.location) {
+    if (!draftReady) return;
+    const current = getServiceRequestDraft();
+    if (!current?.location) {
       router.replace('/(customer)/categories' as Href);
       return;
     }
-    getNearbyProviders(draft.location, draft.categoryId)
+    getNearbyProviders(current.location, current.categoryId)
       .then((list) => {
         const first = list[0];
-        if (first?.profile.location && draft.location) {
-          setNearestKm(distanceKm(draft.location, first.profile.location));
+        if (first?.profile.location && current.location) {
+          setNearestKm(distanceKm(current.location, first.profile.location));
         }
       })
       .catch(() => setNearestKm(null));
-  }, [draft, router]);
+  }, [draftReady, router]);
 
   async function onRequest() {
     if (!user || !draft?.location) return;
@@ -68,13 +73,11 @@ export default function EstimateScreen() {
     }
   }
 
-  if (!draft?.location) return null;
+  if (!draftReady || !draft?.location) return null;
 
   return (
     <AppShell>
-      <Pressable onPress={() => router.back()} style={styles.back}>
-        <Text style={styles.backText}>Back</Text>
-      </Pressable>
+      <BackButton fallbackHref={'/(customer)/request/confirm' as Href} />
       <Text style={styles.title}>Service request</Text>
       <Text style={styles.sub}>Review the estimate, then request a provider.</Text>
 
@@ -116,8 +119,6 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  back: { paddingVertical: 6, alignSelf: 'flex-start' },
-  backText: { color: Colors.accent, fontWeight: '700', fontSize: 15 },
   title: { color: Colors.charcoal, fontSize: FontSize.xxl, fontWeight: '800' },
   sub: { color: Colors.whiteSoft, lineHeight: 20, marginBottom: 12 },
   panel: { padding: 14, gap: 10 },

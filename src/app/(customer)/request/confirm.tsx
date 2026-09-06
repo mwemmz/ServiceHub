@@ -3,35 +3,38 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { AppShell } from '@/components/AppShell';
+import { BackButton } from '@/components/BackButton';
 import { GlassPanel } from '@/components/GlassPanel';
 import { LocationPinMap } from '@/components/LocationPinMap';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { SecondaryButton } from '@/components/SecondaryButton';
 import { Colors, FontSize } from '@/constants/theme';
 import { getServiceRequestDraft } from '@/services/serviceRequestDraft';
+import { useServiceRequestDraftReady } from '@/hooks/useServiceRequestDraftReady';
 import type { GeoLocation } from '@/types';
 
 /** Step 4 — confirm the exact service location before pricing. */
 export default function ConfirmLocationScreen() {
   const router = useRouter();
+  const draftReady = useServiceRequestDraftReady();
   const draft = getServiceRequestDraft();
   const [location, setLocation] = useState<GeoLocation | null>(draft?.location ?? null);
 
   useEffect(() => {
-    if (!draft?.location) {
+    if (!draftReady) return;
+    const current = getServiceRequestDraft();
+    if (!current?.location) {
       router.replace('/(customer)/request/location' as Href);
     } else {
-      setLocation(draft.location);
+      setLocation(current.location);
     }
-  }, [draft, router]);
+  }, [draftReady, router]);
 
-  if (!location || !draft) return null;
+  if (!draftReady || !location || !draft) return null;
 
   return (
     <AppShell>
-      <Pressable onPress={() => router.back()} style={styles.back}>
-        <Text style={styles.backText}>Back</Text>
-      </Pressable>
+      <BackButton fallbackHref={'/(customer)/request/location' as Href} />
       <Text style={styles.title}>Confirm location</Text>
       <Text style={styles.sub}>Make sure this is where the service should happen.</Text>
 
@@ -66,8 +69,6 @@ export default function ConfirmLocationScreen() {
 }
 
 const styles = StyleSheet.create({
-  back: { paddingVertical: 6, alignSelf: 'flex-start' },
-  backText: { color: Colors.accent, fontWeight: '700', fontSize: 15 },
   title: { color: Colors.charcoal, fontSize: FontSize.xxl, fontWeight: '800' },
   sub: { color: Colors.whiteSoft, lineHeight: 20, marginBottom: 12 },
   panel: { padding: 14, gap: 12 },

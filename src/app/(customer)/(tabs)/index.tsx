@@ -1,8 +1,10 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import type { Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { AppShell } from '@/components/AppShell';
 import { Avatar } from '@/components/Avatar';
+import { BackButton } from '@/components/BackButton';
 import { CategoryCard } from '@/components/CategoryCard';
 import { LocationHeader } from '@/components/LocationHeader';
 import { SearchBar } from '@/components/SearchBar';
@@ -65,6 +67,7 @@ export default function CustomerHome() {
 
   return (
     <AppShell edges={['top']} contentStyle={{ paddingBottom: TAB_BAR_CLEARANCE }}>
+      <BackButton fallbackHref={'/(customer)/categories' as Href} />
       {/* Header — single row, location gets remaining space */}
       <View style={styles.header}>
         <Pressable style={styles.menuBtn} accessibilityLabel="Menu">

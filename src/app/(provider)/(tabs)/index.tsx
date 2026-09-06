@@ -16,6 +16,7 @@ import { getService } from '@/services/catalogService';
 import { getUsers } from '@/services/localDb';
 import {
   getProviderApplicationForUser,
+  serviceDisplayPrice,
   type ProviderApplication,
 } from '@/services/providerApplicationService';
 import { firstName, formatKwacha, greetingForNow } from '@/utils/format';
@@ -142,12 +143,33 @@ export default function ProviderDashboard() {
       ) : (
         <View style={styles.serviceStack}>
           {registeredServices.map((svc) => (
-            <GlassPanel key={svc.serviceName} borderRadius={Radii.lg} contentStyle={styles.serviceCard}>
+            <GlassPanel
+              key={svc.serviceId || svc.serviceName}
+              borderRadius={Radii.lg}
+              contentStyle={styles.serviceCard}>
+              <Text style={styles.serviceGroup}>{svc.groupTitle}</Text>
               <Text style={styles.serviceName}>{svc.serviceName}</Text>
               <Text style={styles.serviceMeta}>
-                K{svc.startingPrice}+ · {svc.yearsExperience} yrs · {svc.days.length} days/week
+                {serviceDisplayPrice(svc)} · {svc.yearsExperience} yrs · {svc.days.length} days/week
               </Text>
-              {svc.description ? (
+              {svc.portfolioItems?.length ? (
+                <View style={styles.portfolioPreview}>
+                  {svc.portfolioItems.slice(0, 3).map((work) => (
+                    <Text key={work.id} style={styles.serviceDesc} numberOfLines={1}>
+                      {work.caption.trim() || 'Work sample'}
+                      {work.price.trim() ? ` · K${work.price.trim()}` : ''}
+                    </Text>
+                  ))}
+                  {svc.portfolioItems.length > 3 ? (
+                    <Text style={styles.serviceDesc}>
+                      +{svc.portfolioItems.length - 3} more work sample(s)
+                    </Text>
+                  ) : null}
+                </View>
+              ) : svc.photos?.length ? (
+                <Text style={styles.serviceDesc}>{svc.photos.length} portfolio photo(s)</Text>
+              ) : null}
+              {!svc.portfolioItems?.length && svc.description ? (
                 <Text style={styles.serviceDesc} numberOfLines={2}>
                   {svc.description}
                 </Text>
@@ -221,7 +243,15 @@ const styles = StyleSheet.create({
   linkTitle: { color: Colors.charcoal, fontWeight: '700' },
   serviceStack: { gap: 8, marginBottom: 8 },
   serviceCard: { padding: 14, gap: 4 },
+  serviceGroup: {
+    color: Colors.textLight,
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
   serviceName: { color: Colors.charcoal, fontWeight: '800' },
   serviceMeta: { color: Colors.accent, fontWeight: '700', fontSize: FontSize.sm },
   serviceDesc: { color: Colors.whiteSoft, fontSize: FontSize.sm, lineHeight: 18 },
+  portfolioPreview: { gap: 2, marginTop: 4 },
 });

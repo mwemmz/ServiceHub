@@ -3,6 +3,7 @@ import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { AppShell } from '@/components/AppShell';
+import { BackButton } from '@/components/BackButton';
 import { GlassPanel } from '@/components/GlassPanel';
 import { InputField, type InputFieldHandle } from '@/components/InputField';
 import { PrimaryButton } from '@/components/PrimaryButton';
@@ -10,14 +11,30 @@ import { SecondaryButton } from '@/components/SecondaryButton';
 import { Colors, FontSize } from '@/constants/theme';
 import { AppConfig } from '@/constants/config';
 import { useAuth } from '@/context/AuthContext';
+import { usePersistedState, clearPersistedState } from '@/hooks/usePersistedState';
 import { signInWithGoogle } from '@/services/googleSignIn';
+import { StorageKeys } from '@/services/storage';
+
+type LoginDraft = {
+  email: string;
+  password: string;
+  remember: boolean;
+};
+
+const emptyLoginDraft = (): LoginDraft => ({
+  email: '',
+  password: '',
+  remember: true,
+});
 
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [remember, setRemember] = useState(true);
+  const [draft, setDraft, hydrated] = usePersistedState<LoginDraft>(
+    StorageKeys.draftLogin,
+    emptyLoginDraft(),
+  );
+  const { email, password, remember } = draft;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
@@ -37,6 +54,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       const user = await login(email.trim(), password);
+      await clearPersistedState(StorageKeys.draftLogin);
       if (user.role === 'provider') {
         router.replace('/(provider)/(tabs)');
         return;
@@ -51,9 +69,7 @@ export default function LoginScreen() {
 
   return (
     <AppShell keyboard>
-      <Pressable onPress={() => router.replace('/(auth)/account-type' as Href)} style={styles.back}>
-        <Text style={styles.backText}>Back</Text>
-      </Pressable>
+      <BackButton label="Back to Get Started" fallbackHref={'/(auth)/account-type' as Href} />
       <Text style={styles.title}>Welcome back</Text>
       <Text style={styles.sub}>Sign in to continue to your ServiceHub account.</Text>
 
@@ -63,7 +79,7 @@ export default function LoginScreen() {
           icon="mail-outline"
           value={email}
           onChangeText={(v) => {
-            setEmail(v);
+            setDraft((prev) => ({ ...prev, email: v }));
             setFieldErrors((e) => ({ ...e, email: undefined }));
             setError('');
           }}
@@ -80,7 +96,7 @@ export default function LoginScreen() {
           icon="lock-closed-outline"
           value={password}
           onChangeText={(v) => {
-            setPassword(v);
+            setDraft((prev) => ({ ...prev, password: v }));
             setFieldErrors((e) => ({ ...e, password: undefined }));
             setError('');
           }}
@@ -91,7 +107,9 @@ export default function LoginScreen() {
           onSubmitEditing={onSubmit}
         />
         <View style={styles.row}>
-          <Pressable onPress={() => setRemember((value) => !value)} style={styles.remember}>
+          <Pressable
+            onPress={() => setDraft((prev) => ({ ...prev, remember: !prev.remember }))}
+            style={styles.remember}>
             <View style={[styles.box, remember && styles.boxOn]} />
             <Text style={styles.muted}>Remember me</Text>
           </Pressable>
@@ -138,8 +156,6 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  back: { paddingVertical: 6, alignSelf: 'flex-start' },
-  backText: { color: Colors.accent, fontWeight: '700', fontSize: 15 },
   title: { color: Colors.charcoal, fontSize: 26, fontWeight: '800' },
   sub: { color: Colors.whiteSoft, marginBottom: 14, lineHeight: 20 },
   panel: { padding: 16, gap: 12 },

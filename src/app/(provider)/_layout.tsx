@@ -6,7 +6,7 @@ export default function ProviderLayout() {
   const { isReady, user } = useAuth();
 
   if (!isReady) return <LoadingState />;
-  if (!user) return <Redirect href={'/(auth)/account-type' as import('expo-router').Href} />;
+  if (!user) return <Redirect href={'/(auth)/login' as import('expo-router').Href} />;
   if (user.role !== 'provider') return <Redirect href="/(customer)/(tabs)" />;
 
   return <Stack screenOptions={{ headerShown: false }} />;
