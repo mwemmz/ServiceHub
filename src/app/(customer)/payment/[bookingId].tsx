@@ -17,7 +17,7 @@ export default function PaymentScreen() {
   const [ref, setRef] = useState('');
 
   async function pay() {
-    if (!bookingId) return;
+    if (!bookingId || loading) return;
     setLoading(true);
     setError('');
     try {
@@ -36,8 +36,8 @@ export default function PaymentScreen() {
   }
 
   async function confirm() {
-    if (!ref) {
-      setError('No transaction reference to verify.');
+    if (!ref || loading) {
+      if (!ref) setError('No transaction reference to verify.');
       return;
     }
     setLoading(true);

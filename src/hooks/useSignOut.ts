@@ -3,7 +3,7 @@ import { useRouter, type Href } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { confirmDialog } from '@/utils/confirmDialog';
 
-export function useSignOut(redirectTo: Href = '/(auth)/login') {
+export function useSignOut(redirectTo: Href = '/(auth)/welcome') {
   const router = useRouter();
   const { logout } = useAuth();
   const [signingOut, setSigningOut] = useState(false);

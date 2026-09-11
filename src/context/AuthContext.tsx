@@ -60,7 +60,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(
     async (emailOrPhone: string, password: string) => {
       const next = await loginRequest(emailOrPhone, password);
-      await refresh();
+      setUser(next);
+      try {
+        await refresh();
+      } catch {
+        // Auth already succeeded; avoid leaving Sign In stuck on Loading.
+      }
       return next;
     },
     [refresh],
@@ -69,7 +74,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = useCallback(
     async (input: Parameters<typeof registerRequest>[0]) => {
       const result = await registerRequest(input);
-      await refresh();
+      setUser(result.user);
+      // Do not block account-creation UI on profile refresh (nearby provider list, etc.).
+      refresh().catch(() => undefined);
       return result;
     },
     [refresh],

@@ -15,6 +15,9 @@ export class ApiError extends Error {
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
+/** Render free-tier cold starts can be slow; never leave the UI spinning forever. */
+const REQUEST_TIMEOUT_MS = 45000;
+
 let refreshPromise: Promise<string | null> | null = null;
 
 export async function getAccessToken(): Promise<string | null> {
@@ -43,11 +46,19 @@ async function refreshAccessToken(): Promise<string | null> {
       const refreshToken = await getRefreshToken();
       if (!refreshToken) return null;
       try {
-        const res = await fetch(`${AppConfig.apiBaseUrl}/auth/refresh-token`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ refreshToken }),
-        });
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+        let res: Response;
+        try {
+          res = await fetch(`${AppConfig.apiBaseUrl}/auth/refresh-token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({ refreshToken }),
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timer);
+        }
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
           await clearTokens();
@@ -115,11 +126,30 @@ export async function apiRequest<T>(
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
-  const res = await fetch(buildUrl(path, query), {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  let res: Response;
+  try {
+    res = await fetch(buildUrl(path, query), {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+  } catch (err) {
+    const aborted =
+      (err instanceof Error && err.name === 'AbortError') ||
+      (typeof err === 'object' && err !== null && 'name' in err && (err as { name: string }).name === 'AbortError');
+    throw new ApiError(
+      aborted
+        ? 'The server is taking too long to respond. Please try again.'
+        : 'Network error. Check your connection and try again.',
+      aborted ? 408 : 0,
+    );
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (res.status === 401 && auth && retry) {
     const next = await refreshAccessToken();
@@ -135,7 +165,11 @@ export async function apiRequest<T>(
   if (res.status === 204) return undefined as T;
   const text = await res.text();
   if (!text) return undefined as T;
-  return JSON.parse(text) as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new ApiError('The server returned an unexpected response. Please try again.', res.status);
+  }
 }
 
 export const api = {

@@ -1,5 +1,8 @@
 export type UserRole = 'customer' | 'provider';
 
+/** Distinguishes provider account subtypes after registration / login. */
+export type ProviderKind = 'individual' | 'business';
+
 export type CategoryId = 'beauty' | 'cleaning' | 'repair';
 
 export interface GeoLocation {
@@ -17,6 +20,8 @@ export interface User {
   phone: string;
   passwordHash: string;
   role: UserRole;
+  /** Set for provider accounts — individual professional vs registered business. */
+  providerKind?: ProviderKind;
   avatarUri?: string;
   isVerified: boolean;
   createdAt: string;

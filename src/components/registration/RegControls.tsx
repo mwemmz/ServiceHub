@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRegScroll } from '@/components/registration/RegScrollContext';
 import { RegColors } from '@/constants/registrationTheme';
+import { composeZambianPhone, nationalDigitsFromPhone } from '@/utils/registrationValidation';
 
 export function RegField({
   fieldKey,
@@ -22,7 +23,7 @@ export function RegField({
   label,
   value,
   onChangeText,
-  placeholder,
+  placeholder: _placeholder,
   keyboardType,
   autoCapitalize = 'none',
   secureTextEntry,
@@ -33,6 +34,9 @@ export function RegField({
   onSubmitEditing,
   blurOnSubmit,
   variant = 'default',
+  countryCodePrefix,
+  onFocus,
+  onBlur,
 }: {
   fieldKey?: string;
   /** When set, keyboard Next focuses this field key (keeps keyboard open). */
@@ -52,8 +56,12 @@ export function RegField({
   blurOnSubmit?: boolean;
   /** `glass` — premium translucent fields with soft grey/white glow (service details step). */
   variant?: 'default' | 'glass';
+  /** Non-editable country code shown before the input (e.g. +260). */
+  countryCodePrefix?: string;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }) {
-  const [hidden, setHidden] = useState(!!secureTextEntry);
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [focused, setFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
   const isGlass = variant === 'glass';
@@ -115,6 +123,9 @@ export function RegField({
           error ? styles.fieldError : null,
           !editable && styles.disabled,
         ]}>
+        {countryCodePrefix ? (
+          <Text style={[styles.prefix, isGlass && styles.glassPrefix]}>{countryCodePrefix}</Text>
+        ) : null}
         <TextInput
           ref={bindInput}
           style={[
@@ -123,13 +134,16 @@ export function RegField({
             isGlass && styles.glassInput,
             isGlass && multiline && styles.glassMultilineInput,
           ]}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
+          value={countryCodePrefix ? nationalDigitsFromPhone(value) : value}
+          onChangeText={(text) =>
+            onChangeText(countryCodePrefix ? composeZambianPhone(text) : text)
+          }
+          placeholder={undefined}
           placeholderTextColor={isGlass ? 'rgba(255,255,255,0.48)' : 'rgba(255,255,255,0.42)'}
+          maxLength={countryCodePrefix ? 9 : undefined}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
-          secureTextEntry={secureTextEntry ? hidden : false}
+          secureTextEntry={secureTextEntry ? !passwordVisible : false}
           editable={editable}
           multiline={multiline}
           textAlignVertical={multiline ? 'top' : 'center'}
@@ -139,6 +153,7 @@ export function RegField({
           enablesReturnKeyAutomatically={false}
           onFocus={() => {
             setFocused(true);
+            onFocus?.();
             if (fieldKey) {
               scrollToField(fieldKey);
               if (Platform.OS === 'web') {
@@ -147,7 +162,10 @@ export function RegField({
               }
             }
           }}
-          onBlur={() => setFocused(false)}
+          onBlur={() => {
+            setFocused(false);
+            onBlur?.();
+          }}
           underlineColorAndroid="transparent"
           selectionColor="rgba(180,180,190,0.55)"
           autoFocus={false}
@@ -161,9 +179,13 @@ export function RegField({
             : {})}
         />
         {secureTextEntry ? (
-          <Pressable onPress={() => setHidden((v) => !v)} hitSlop={8}>
+          <Pressable
+            onPress={() => setPasswordVisible((v) => !v)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}>
             <Ionicons
-              name={hidden ? 'eye-outline' : 'eye-off-outline'}
+              name={passwordVisible ? 'eye-outline' : 'eye-off-outline'}
               size={20}
               color={RegColors.goldSoft}
             />
@@ -271,6 +293,15 @@ export function RegError({ message }: { message?: string }) {
 
 const styles = StyleSheet.create({
   wrap: { gap: 6 },
+  prefix: {
+    color: RegColors.whiteSoft,
+    fontSize: 15,
+    fontWeight: '700',
+    marginRight: 2,
+  },
+  glassPrefix: {
+    color: 'rgba(255,255,255,0.94)',
+  },
   label: { color: RegColors.whiteSoft, fontSize: 13, fontWeight: '600' },
   field: {
     minHeight: 50,

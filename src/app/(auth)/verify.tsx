@@ -18,15 +18,25 @@ export default function VerifyScreen() {
   const [error, setError] = useState('');
 
   async function onSubmit() {
-    if (!params.email) return;
+    if (!params.email || loading) return;
     setError('');
+    if (!code.trim()) {
+      setError('Verification code is required.');
+      return;
+    }
+    if (code.trim().length < 6) {
+      setError('Please enter the full 6-digit verification code.');
+      return;
+    }
     setLoading(true);
     try {
       const user = await verify(params.email, code);
       if (user.role === 'provider') router.replace('/(provider)/setup');
       else router.replace('/(customer)/(tabs)');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Verification failed.');
+      setError(
+        err instanceof Error ? err.message : 'Verification failed. Please check the code and try again.',
+      );
     } finally {
       setLoading(false);
     }
@@ -52,7 +62,6 @@ export default function VerifyScreen() {
           label="Verification code"
           value={code}
           onChangeText={setCode}
-          placeholder="123456"
           keyboardType="number-pad"
           returnKeyType="done"
           onSubmitEditing={onSubmit}

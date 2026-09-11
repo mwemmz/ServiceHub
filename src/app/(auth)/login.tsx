@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { AppShell } from '@/components/AppShell';
@@ -7,13 +7,12 @@ import { BackButton } from '@/components/BackButton';
 import { GlassPanel } from '@/components/GlassPanel';
 import { InputField, type InputFieldHandle } from '@/components/InputField';
 import { PrimaryButton } from '@/components/PrimaryButton';
-import { SecondaryButton } from '@/components/SecondaryButton';
 import { Colors, FontSize } from '@/constants/theme';
 import { AppConfig } from '@/constants/config';
 import { useAuth } from '@/context/AuthContext';
 import { usePersistedState, clearPersistedState } from '@/hooks/usePersistedState';
-import { signInWithGoogle } from '@/services/googleSignIn';
 import { StorageKeys } from '@/services/storage';
+import { friendlyAuthError } from '@/utils/registrationValidation';
 
 type LoginDraft = {
   email: string;
@@ -38,30 +37,40 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
+  const emailRef = useRef<InputFieldHandle>(null);
   const passwordRef = useRef<InputFieldHandle>(null);
 
   function validate(): boolean {
     const next: { email?: string; password?: string } = {};
-    if (!email.trim()) next.email = 'This field is required.';
-    if (!password) next.password = 'This field is required.';
+    if (!email.trim()) next.email = 'Phone number or email is required.';
+    if (!password) next.password = 'Password is required.';
     setFieldErrors(next);
+    if (next.email) emailRef.current?.focus();
+    else if (next.password) passwordRef.current?.focus();
     return Object.keys(next).length === 0;
   }
 
+  function goAfterLogin(role: string) {
+    if (role === 'provider') {
+      router.replace('/(provider)/(tabs)');
+      return;
+    }
+    router.replace('/(customer)/categories' as Href);
+  }
+
   async function onSubmit() {
+    if (loading) return;
     setError('');
     if (!validate()) return;
     setLoading(true);
     try {
       const user = await login(email.trim(), password);
       await clearPersistedState(StorageKeys.draftLogin);
-      if (user.role === 'provider') {
-        router.replace('/(provider)/(tabs)');
-        return;
-      }
-      router.replace('/(customer)/categories' as Href);
+      Alert.alert('Success', 'Login successful. Welcome to ServiceHub!', [
+        { text: 'Continue', onPress: () => goAfterLogin(user.role) },
+      ]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not sign in.');
+      setError(friendlyAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -69,13 +78,14 @@ export default function LoginScreen() {
 
   return (
     <AppShell keyboard>
-      <BackButton label="Back to Get Started" fallbackHref={'/(auth)/account-type' as Href} />
+      <BackButton label="Back" fallbackHref={'/(auth)/welcome' as Href} />
       <Text style={styles.title}>Welcome back</Text>
-      <Text style={styles.sub}>Sign in to continue to your ServiceHub account.</Text>
+      <Text style={styles.sub}>Sign in with your phone number or email to continue.</Text>
 
       <GlassPanel borderRadius={24} contentStyle={styles.panel}>
         <InputField
-          label="Email or phone"
+          ref={emailRef}
+          label="Phone number or Email"
           icon="mail-outline"
           value={email}
           onChangeText={(v) => {
@@ -83,7 +93,6 @@ export default function LoginScreen() {
             setFieldErrors((e) => ({ ...e, email: undefined }));
             setError('');
           }}
-          placeholder="Email or phone number"
           keyboardType="email-address"
           error={fieldErrors.email}
           returnKeyType="next"
@@ -100,7 +109,6 @@ export default function LoginScreen() {
             setFieldErrors((e) => ({ ...e, password: undefined }));
             setError('');
           }}
-          placeholder="Password"
           secureTextEntry
           error={fieldErrors.password}
           returnKeyType="done"
@@ -119,26 +127,9 @@ export default function LoginScreen() {
         </View>
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <PrimaryButton label="Sign In" onPress={onSubmit} loading={loading} />
-        <Text style={styles.or}>or</Text>
-        <SecondaryButton
-          label="Continue with Google"
-          onPress={() => {
-            signInWithGoogle().catch(() =>
-              Alert.alert('Sign-in failed', 'Please try again.'),
-            );
-          }}
-        />
-        {Platform.OS === 'ios' ? (
-          <SecondaryButton
-            label="Continue with Apple"
-            onPress={() =>
-              Alert.alert('Coming later', 'Apple sign-in will be available when a backend is connected.')
-            }
-          />
-        ) : null}
         <Pressable onPress={() => router.push('/(auth)/account-type' as Href)}>
           <Text style={styles.footer}>
-            Don't have an account? <Text style={styles.link}>Sign Up</Text>
+            Don't have an account? <Text style={styles.link}>Get Started</Text>
           </Text>
         </Pressable>
         <View style={styles.demo}>
@@ -172,7 +163,6 @@ const styles = StyleSheet.create({
   muted: { color: Colors.textMuted, fontSize: FontSize.sm },
   link: { color: Colors.accent, fontWeight: '700' },
   error: { color: Colors.error },
-  or: { textAlign: 'center', color: Colors.textLight },
   footer: { textAlign: 'center', color: Colors.whiteSoft, marginTop: 4 },
   demo: {
     backgroundColor: Colors.accentSoft,

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { GlassPanel } from '@/components/GlassPanel';
 import { Screen } from '@/components/Screen';
@@ -8,6 +8,11 @@ import { InputField, type InputFieldHandle } from '@/components/InputField';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Colors, FontSize, Radii } from '@/constants/theme';
 import { resetPassword } from '@/services/authService';
+import {
+  friendlyAuthError,
+  getConfirmPasswordError,
+  getPasswordError,
+} from '@/utils/registrationValidation';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
@@ -24,28 +29,34 @@ export default function ResetPasswordScreen() {
   }>({});
   const passwordRef = useRef<InputFieldHandle>(null);
   const confirmRef = useRef<InputFieldHandle>(null);
+  const codeRef = useRef<InputFieldHandle>(null);
 
   function validate(): boolean {
     const next: typeof fieldErrors = {};
-    if (!code.trim()) next.code = 'This field is required.';
-    if (!password) next.password = 'This field is required.';
-    else if (password.length < 8) next.password = 'Use at least 8 characters.';
-    if (!confirm) next.confirm = 'This field is required.';
-    else if (password !== confirm) next.confirm = 'Passwords do not match.';
+    if (!code.trim()) next.code = 'Reset code is required.';
+    const passwordError = getPasswordError(password);
+    if (passwordError) next.password = passwordError;
+    const confirmError = getConfirmPasswordError(password, confirm);
+    if (confirmError) next.confirm = confirmError;
     setFieldErrors(next);
+    if (next.code) codeRef.current?.focus();
+    else if (next.password) passwordRef.current?.focus();
+    else if (next.confirm) confirmRef.current?.focus();
     return Object.keys(next).length === 0;
   }
 
   async function onSubmit() {
-    if (!params.email) return;
+    if (!params.email || loading) return;
     setError('');
     if (!validate()) return;
     setLoading(true);
     try {
       await resetPassword(params.email, code, password);
-      router.replace('/(auth)/login');
+      Alert.alert('Success', 'Your password has been reset successfully.', [
+        { text: 'OK', onPress: () => router.replace('/(auth)/login') },
+      ]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not reset password.');
+      setError(friendlyAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -68,14 +79,13 @@ export default function ResetPasswordScreen() {
           </View>
         ) : null}
         <InputField
+          ref={codeRef}
           label="Reset code"
           value={code}
           onChangeText={(v) => {
             setCode(v);
             setFieldErrors((e) => ({ ...e, code: undefined }));
           }}
-          placeholder="123456"
-          keyboardType="number-pad"
           error={fieldErrors.code}
           returnKeyType="next"
           blurOnSubmit={false}
@@ -89,7 +99,6 @@ export default function ResetPasswordScreen() {
             setPassword(v);
             setFieldErrors((e) => ({ ...e, password: undefined }));
           }}
-          placeholder="At least 8 characters"
           secureTextEntry
           error={fieldErrors.password}
           returnKeyType="next"
@@ -104,7 +113,6 @@ export default function ResetPasswordScreen() {
             setConfirm(v);
             setFieldErrors((e) => ({ ...e, confirm: undefined }));
           }}
-          placeholder="Repeat password"
           secureTextEntry
           error={fieldErrors.confirm}
           returnKeyType="done"

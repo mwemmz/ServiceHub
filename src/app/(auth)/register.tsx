@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
-import { PasswordStrength } from '@/components/registration/PasswordStrength';
+import { PasswordPairFields } from '@/components/registration/PasswordPairFields';
 import {
   RegError,
   RegField,
@@ -18,6 +18,7 @@ import { useCustomerRegistrationBack } from '@/hooks/useCustomerRegistrationBack
 import { useAuth } from '@/context/AuthContext';
 import { updateUser } from '@/services/authService';
 import {
+  CUSTOMER_REGISTER_FLOW_VERSION,
   CUSTOMER_REGISTER_TOTAL_STEPS,
   getCustomerRegistrationDraft,
   hydrateCustomerRegistrationDraft,
@@ -27,9 +28,10 @@ import {
 } from '@/services/customerRegistrationDraft';
 import {
   friendlyAuthError,
-  isStrongPassword,
-  isValidEmail,
-  isValidZambianPhone,
+  getConfirmPasswordError,
+  getEmailError,
+  getPasswordError,
+  getPhoneError,
   normalizeZambianPhone,
 } from '@/utils/registrationValidation';
 
@@ -49,14 +51,13 @@ export default function CustomerRegisterScreen() {
 
   const titles: Record<number, { title: string; subtitle?: string }> = {
     1: { title: 'Create Your Account', subtitle: "Let's get to know you." },
-    2: { title: 'Secure Your Account', subtitle: 'Choose a strong password.' },
-    3: {
+    2: {
       title: 'Add a Profile Photo',
       subtitle: 'Optional — you can skip and add one later.',
     },
-    4: { title: 'Almost There!', subtitle: 'Review your details, then create your account.' },
+    3: { title: 'Almost There!', subtitle: 'Review your details, then create your account.' },
   };
-  const meta = titles[step];
+  const meta = titles[step] ?? titles[1];
 
   return (
     <RegShell
@@ -83,7 +84,10 @@ function CustomerSteps({ step }: { step: number }) {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    hydrateCustomerRegistrationDraft().then(() => setHydrated(true));
+    hydrateCustomerRegistrationDraft().then(() => {
+      patchCustomerRegistrationDraft({ flowVersion: CUSTOMER_REGISTER_FLOW_VERSION });
+      setHydrated(true);
+    });
   }, []);
 
   const form = getCustomerRegistrationDraft();
@@ -118,27 +122,19 @@ function CustomerSteps({ step }: { step: number }) {
     let order: string[] = [];
 
     if (s === 1) {
-      order = ['firstName', 'lastName', 'phone', 'email'];
-      if (!form.firstName.trim()) next.firstName = 'This field is required.';
+      order = ['firstName', 'lastName', 'phone', 'email', 'password', 'confirm'];
+      if (!form.firstName.trim()) next.firstName = 'First name is required.';
       else if (form.firstName.trim().length < 2) next.firstName = 'Enter your first name.';
-      if (!form.lastName.trim()) next.lastName = 'This field is required.';
+      if (!form.lastName.trim()) next.lastName = 'Last name is required.';
       else if (form.lastName.trim().length < 2) next.lastName = 'Enter your last name.';
-      if (!form.phone.trim()) next.phone = 'This field is required.';
-      else if (!isValidZambianPhone(form.phone)) {
-        next.phone = 'Use a valid Zambian number, e.g. +260 97 XXX XXXX.';
-      }
-      if (!form.email.trim()) next.email = 'This field is required.';
-      else if (!isValidEmail(form.email)) next.email = 'Enter a valid email address.';
-    }
-
-    if (s === 2) {
-      order = ['password', 'confirm'];
-      if (!form.password) next.password = 'This field is required.';
-      else if (!isStrongPassword(form.password)) {
-        next.password = 'Password does not meet the requirements.';
-      }
-      if (!form.confirm) next.confirm = 'This field is required.';
-      else if (form.password !== form.confirm) next.confirm = 'Passwords do not match.';
+      const phoneError = getPhoneError(form.phone);
+      if (phoneError) next.phone = phoneError;
+      const emailError = getEmailError(form.email);
+      if (emailError) next.email = emailError;
+      const passwordError = getPasswordError(form.password);
+      if (passwordError) next.password = passwordError;
+      const confirmError = getConfirmPasswordError(form.password, form.confirm);
+      if (confirmError) next.confirm = confirmError;
     }
 
     return { ok: Object.keys(next).length === 0, errors: next, order };
@@ -158,23 +154,27 @@ function CustomerSteps({ step }: { step: number }) {
   function goNext() {
     setBanner('');
     if (!applyValidation(step)) return;
-    if (step === 1) patch({ phone: normalizeZambianPhone(form.phone) });
+    if (step === 1) {
+      patch({
+        phone: normalizeZambianPhone(form.phone),
+        flowVersion: CUSTOMER_REGISTER_FLOW_VERSION,
+      });
+    }
     pushStep(Math.min(TOTAL, step + 1));
   }
 
   async function onCreateAccount() {
-    for (const s of [1, 2] as const) {
-      const result = validateStep(s);
-      if (!result.ok) {
-        setBanner('Please complete all required steps before creating your account.');
-        setErrors(result.errors);
-        pushStep(s);
-        requestAnimationFrame(() => {
-          const key = firstErrorKey(result.errors, result.order);
-          if (key) scrollToField(key);
-        });
-        return;
-      }
+    if (loading) return;
+    const result = validateStep(1);
+    if (!result.ok) {
+      setBanner('Please fix the highlighted fields before creating your account.');
+      setErrors(result.errors);
+      pushStep(1);
+      requestAnimationFrame(() => {
+        const key = firstErrorKey(result.errors, result.order);
+        if (key) scrollToField(key);
+      });
+      return;
     }
 
     setLoading(true);
@@ -218,10 +218,18 @@ function CustomerSteps({ step }: { step: number }) {
   if (step === 1) {
     return (
       <>
-        <RegField fieldKey="firstName" nextFieldKey="lastName" label="First Name" value={form.firstName} onChangeText={(firstName) => patch({ firstName })} placeholder="e.g. Chanda" autoCapitalize="words" error={errors.firstName} />
-        <RegField fieldKey="lastName" nextFieldKey="phone" label="Last Name" value={form.lastName} onChangeText={(lastName) => patch({ lastName })} placeholder="e.g. Banda" autoCapitalize="words" error={errors.lastName} />
-        <RegField fieldKey="phone" nextFieldKey="email" label="Phone Number" value={form.phone} onChangeText={(phone) => patch({ phone })} placeholder="+260 97 XXX XXXX" keyboardType="phone-pad" error={errors.phone} />
-        <RegField fieldKey="email" label="Email Address" value={form.email} onChangeText={(email) => patch({ email })} placeholder="you@email.com" keyboardType="email-address" error={errors.email} returnKeyType="done" onSubmitEditing={goNext} />
+        <RegField fieldKey="firstName" nextFieldKey="lastName" label="First Name" value={form.firstName} onChangeText={(firstName) => patch({ firstName })} autoCapitalize="words" error={errors.firstName} />
+        <RegField fieldKey="lastName" nextFieldKey="phone" label="Last Name" value={form.lastName} onChangeText={(lastName) => patch({ lastName })} autoCapitalize="words" error={errors.lastName} />
+        <RegField fieldKey="phone" nextFieldKey="email" label="Phone Number" value={form.phone} onChangeText={(phone) => patch({ phone })} keyboardType="phone-pad" countryCodePrefix="+260" error={errors.phone} />
+        <RegField fieldKey="email" nextFieldKey="password" label="Email Address" value={form.email} onChangeText={(email) => patch({ email })} keyboardType="email-address" error={errors.email} />
+        <PasswordPairFields
+          password={form.password}
+          confirm={form.confirm}
+          errors={errors}
+          onChangePassword={(password) => patch({ password })}
+          onChangeConfirm={(confirm) => patch({ confirm })}
+          onConfirmSubmit={goNext}
+        />
         <RegError message={banner} />
         <RegPrimaryButton label="Continue" onPress={goNext} />
         <AuthSignInLink />
@@ -230,18 +238,6 @@ function CustomerSteps({ step }: { step: number }) {
   }
 
   if (step === 2) {
-    return (
-      <>
-        <RegField fieldKey="password" nextFieldKey="confirm" label="Password" value={form.password} onChangeText={(password) => patch({ password })} placeholder="Create a password" secureTextEntry error={errors.password} />
-        <PasswordStrength password={form.password} />
-        <RegField fieldKey="confirm" label="Confirm Password" value={form.confirm} onChangeText={(confirm) => patch({ confirm })} placeholder="Repeat your password" secureTextEntry error={errors.confirm} returnKeyType="done" onSubmitEditing={goNext} />
-        <RegError message={banner} />
-        <RegPrimaryButton label="Continue" onPress={goNext} />
-      </>
-    );
-  }
-
-  if (step === 3) {
     return (
       <>
         <ProfilePhotoPicker uri={form.avatarUri} onChange={(avatarUri) => patch({ avatarUri })} />
@@ -267,7 +263,7 @@ function CustomerSteps({ step }: { step: number }) {
       <View style={styles.summaryCard}>
         <View style={styles.summaryHead}>
           <Text style={styles.summaryTitle}>Profile Photo</Text>
-          <Pressable onPress={() => pushStep(3)}>
+          <Pressable onPress={() => pushStep(2)}>
             <Text style={styles.edit}>Edit</Text>
           </Pressable>
         </View>

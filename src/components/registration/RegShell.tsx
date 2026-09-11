@@ -32,6 +32,7 @@ export function RegShell({
   embedHeaderInPanel = false,
   referenceCategoryLayout = false,
   categoryPanelLayout = false,
+  showProgress = true,
 }: {
   children: ReactNode;
   onBack: () => void;
@@ -47,6 +48,8 @@ export function RegShell({
   referenceCategoryLayout?: boolean;
   /** Darker frosted panel styling for the service-category step (matches reference mockup). */
   categoryPanelLayout?: boolean;
+  /** When false, hides the Step X of Y label and progress bar. */
+  showProgress?: boolean;
 }) {
   const progress = Math.max(0, Math.min(1, step / totalSteps));
   const scrollRef = useRef<ScrollView>(null);
@@ -150,13 +153,19 @@ export function RegShell({
                 ) : null}
                 <Text style={[styles.backLabel, styles.backLabelPremium]}>{backLabel}</Text>
               </Pressable>
-              <Text style={[styles.stepLabel, styles.stepLabelPremium]}>
-                Step {step} of {totalSteps}
-              </Text>
+              {showProgress ? (
+                <Text style={[styles.stepLabel, styles.stepLabelPremium]}>
+                  Step {step} of {totalSteps}
+                </Text>
+              ) : (
+                <View />
+              )}
             </View>
-            <View style={[styles.progressTrack, styles.progressTrackPremium, styles.progressTrackCategory]}>
-              <View style={[styles.progressFill, styles.progressFillPremium, { width: `${progress * 100}%` }]} />
-            </View>
+            {showProgress ? (
+              <View style={[styles.progressTrack, styles.progressTrackPremium, styles.progressTrackCategory]}>
+                <View style={[styles.progressFill, styles.progressFillPremium, { width: `${progress * 100}%` }]} />
+              </View>
+            ) : null}
           </View>
         ) : (
           <>
@@ -177,14 +186,26 @@ export function RegShell({
                   {backLabel}
                 </Text>
               </Pressable>
-              <Text style={[styles.stepLabel, premiumChrome && styles.stepLabelPremium]}>
-                Step {step} of {totalSteps}
-              </Text>
+              {showProgress ? (
+                <Text style={[styles.stepLabel, premiumChrome && styles.stepLabelPremium]}>
+                  Step {step} of {totalSteps}
+                </Text>
+              ) : (
+                <View />
+              )}
             </View>
 
-            <View style={[styles.progressTrack, premiumChrome && styles.progressTrackPremium]}>
-              <View style={[styles.progressFill, premiumChrome && styles.progressFillPremium, { width: `${progress * 100}%` }]} />
-            </View>
+            {showProgress ? (
+              <View style={[styles.progressTrack, premiumChrome && styles.progressTrackPremium]}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    premiumChrome && styles.progressFillPremium,
+                    { width: `${progress * 100}%` },
+                  ]}
+                />
+              </View>
+            ) : null}
           </>
         )}
 

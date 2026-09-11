@@ -65,7 +65,10 @@ export const StorageKeys = {
   seeded: 'servicehub.seeded',
   providerApplications: 'servicehub.providerApplications',
   draftCustomerRegistration: 'servicehub.draft.customerRegistration',
+  /** @deprecated migrated into individual/business keys */
   draftProviderRegistration: 'servicehub.draft.providerRegistration',
+  draftProviderRegistrationIndividual: 'servicehub.draft.providerRegistration.individual',
+  draftProviderRegistrationBusiness: 'servicehub.draft.providerRegistration.business',
   draftServiceRequest: 'servicehub.draft.serviceRequest',
   draftLogin: 'servicehub.draft.login',
   draftBooking: 'servicehub.draft.booking',

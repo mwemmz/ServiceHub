@@ -8,6 +8,7 @@ import { InputField } from '@/components/InputField';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Colors, FontSize } from '@/constants/theme';
 import { requestPasswordReset } from '@/services/authService';
+import { friendlyAuthError, getEmailError } from '@/utils/registrationValidation';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -17,9 +18,11 @@ export default function ForgotPasswordScreen() {
   const [fieldError, setFieldError] = useState('');
 
   async function onSubmit() {
+    if (loading) return;
     setError('');
-    if (!email.trim()) {
-      setFieldError('This field is required.');
+    const emailError = getEmailError(email);
+    if (emailError) {
+      setFieldError(emailError);
       return;
     }
     setFieldError('');
@@ -28,7 +31,7 @@ export default function ForgotPasswordScreen() {
       const code = await requestPasswordReset(email.trim());
       router.push({ pathname: '/(auth)/reset-password', params: { email: email.trim(), code } });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not start reset.');
+      setError(friendlyAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -39,7 +42,7 @@ export default function ForgotPasswordScreen() {
       <ScreenHeader
         title="Forgot password"
         subtitle="We will generate a local reset code until email is connected."
-        fallbackHref={'/(auth)/login' as import('expo-router').Href}
+        fallbackHref={'/(auth)/welcome' as import('expo-router').Href}
       />
       <GlassPanel borderRadius={24} contentStyle={styles.form}>
         <InputField
@@ -50,7 +53,6 @@ export default function ForgotPasswordScreen() {
             setEmail(v);
             setFieldError('');
           }}
-          placeholder="you@email.com"
           keyboardType="email-address"
           error={fieldError}
           returnKeyType="done"

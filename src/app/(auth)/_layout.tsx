@@ -1,12 +1,12 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { hydrateCustomerRegistrationDraft } from '@/services/customerRegistrationDraft';
-import { hydrateProviderRegistrationDraft } from '@/services/providerRegistrationDraft';
+import { hydrateAllProviderRegistrationDrafts } from '@/services/providerRegistrationDraft';
 
 export default function AuthLayout() {
   useEffect(() => {
     void hydrateCustomerRegistrationDraft();
-    void hydrateProviderRegistrationDraft();
+    void hydrateAllProviderRegistrationDrafts();
   }, []);
 
   return (

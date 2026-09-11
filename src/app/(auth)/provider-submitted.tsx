@@ -18,7 +18,7 @@ export default function ProviderSubmittedScreen() {
       onBack={() => router.replace('/(auth)/provider-pending' as Href)}
       step={9}
       totalSteps={9}
-      title="Account Created"
+      title="Account created successfully!"
       subtitle="Your provider profile is being reviewed.">
       <View style={styles.iconWrap}>
         <Ionicons name="checkmark-circle" size={64} color={RegColors.success} />

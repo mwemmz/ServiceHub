@@ -1,1 +1,1 @@
-export { default } from './(auth)/account-type';
+export { default } from './(auth)/welcome';

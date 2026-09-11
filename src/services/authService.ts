@@ -2,6 +2,7 @@ import { api, clearTokens, saveTokens } from '@/services/apiClient';
 import { mapApiUser, type ApiUser } from '@/services/apiMappers';
 import { deleteSecure, getJson, getSecure, setJson, setSecure, StorageKeys } from '@/services/storage';
 import type { Session, User, UserRole } from '@/types';
+import { isValidZambianPhone, normalizeZambianPhone } from '@/utils/registrationValidation';
 
 export interface RegisterInput {
   fullName: string;
@@ -54,7 +55,11 @@ export async function getCurrentUser(): Promise<User | null> {
       ? (data as { user: ApiUser }).user
       : (data as ApiUser);
     if (!apiUser?.id) return getCachedUser();
+    const cached = await getCachedUser();
     const user = mapApiUser(apiUser);
+    if (cached?.id === user.id && cached.providerKind) {
+      user.providerKind = cached.providerKind;
+    }
     await cacheUser(user);
     return user;
   } catch {
@@ -76,7 +81,23 @@ export async function login(emailOrPhone: string, password: string): Promise<Use
     false,
   );
   await saveTokens(data.accessToken, data.refreshToken);
+  const cached = await getCachedUser();
   const user = mapApiUser(data.user);
+  if (cached?.id === user.id && cached.providerKind) {
+    user.providerKind = cached.providerKind;
+  } else if (user.role === 'provider') {
+    // Fall back to local provider application subtype when available.
+    try {
+      const { getProviderApplicationForUser } = await import(
+        '@/services/providerApplicationService'
+      );
+      const app = await getProviderApplicationForUser(user.id);
+      if (app?.providerType === 'business') user.providerKind = 'business';
+      else if (app?.providerType === 'individual') user.providerKind = 'individual';
+    } catch {
+      // ignore
+    }
+  }
   await cacheUser(user);
   return user;
 }
@@ -87,26 +108,31 @@ export async function register(input: RegisterInput): Promise<{ user: User; veri
     {
       name: input.fullName.trim(),
       email: input.email.trim().toLowerCase(),
-      phone: input.phone.trim(),
+      phone: isValidZambianPhone(input.phone)
+        ? normalizeZambianPhone(input.phone)
+        : input.phone.trim(),
       password: input.password,
       role: input.role,
     },
     false,
   );
 
+  if (!data?.accessToken || !data?.user?.id) {
+    throw new Error('Registration did not complete. Please try again.');
+  }
+
   await saveTokens(data.accessToken, data.refreshToken);
   const user = mapApiUser(data.user);
 
   if (input.role === 'provider') {
-    try {
-      await api.post('/providers', {
+    // Do not block account creation if provider-profile setup is slow or down.
+    void api
+      .post('/providers', {
         business_name: input.fullName.trim(),
         description: 'New ServiceHub provider',
         category: 'General',
-      });
-    } catch {
-      // Provider profile can be completed later in setup.
-    }
+      })
+      .catch(() => undefined);
   }
 
   await cacheUser(user);
@@ -145,16 +171,37 @@ export async function logout(): Promise<void> {
 }
 
 export async function updateUser(_userId: string, patch: Partial<User>): Promise<User> {
+  const cached = await getCachedUser();
+  // Local-only fields (e.g. providerKind) can be applied without a remote profile call.
+  if (
+    patch.providerKind &&
+    !patch.fullName &&
+    !patch.phone &&
+    !patch.avatarUri &&
+    cached?.id === _userId
+  ) {
+    const user = { ...cached, ...patch };
+    await cacheUser(user);
+    return user;
+  }
+
   const data = await api.put<{ user?: ApiUser } | ApiUser>('/auth/update-profile', {
     name: patch.fullName,
-    phone: patch.phone,
+    phone:
+      patch.phone && isValidZambianPhone(patch.phone)
+        ? normalizeZambianPhone(patch.phone)
+        : patch.phone,
     profile_image: patch.avatarUri,
   });
   const apiUser =
     data && typeof data === 'object' && 'user' in data && (data as { user?: ApiUser }).user
       ? (data as { user: ApiUser }).user
       : (data as ApiUser);
-  const user = apiUser?.id ? mapApiUser(apiUser) : { ...(await getCachedUser())!, ...patch };
+  const mapped = apiUser?.id ? mapApiUser(apiUser) : { ...(cached ?? ({} as User)), ...patch };
+  const user: User = {
+    ...mapped,
+    providerKind: patch.providerKind ?? cached?.providerKind ?? mapped.providerKind,
+  };
   await cacheUser(user);
   return user;
 }

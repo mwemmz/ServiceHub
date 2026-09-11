@@ -24,7 +24,9 @@ export function useAsyncData<T>(loader: () => Promise<T>, deps: unknown[] = []):
         if (!cancelled) setData(result);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Something went wrong.');
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

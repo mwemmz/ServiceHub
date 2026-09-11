@@ -86,6 +86,8 @@ export interface ProviderApplication {
     businessUri?: string;
     certificateUri?: string;
     otherUri?: string;
+    certificationUris?: string[];
+    supportingUris?: string[];
   };
   /** @deprecated legacy shape — kept for older stored apps */
   service?: {

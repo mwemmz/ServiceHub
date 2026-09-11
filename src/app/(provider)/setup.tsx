@@ -39,6 +39,7 @@ export default function ProviderSetupScreen() {
   });
   const { fullName, bio, area, years, categoryId, selected } = draft;
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const { data: categories } = useAsyncData(getCategories, []);
   const { data: services } = useAsyncData(() => getServicesForCategory(categoryId), [categoryId]);
 
@@ -69,27 +70,33 @@ export default function ProviderSetupScreen() {
   }
 
   async function save() {
-    if (!user) return;
+    if (!user || saving) return;
     setSaving(true);
-    const offers: ProviderService[] = Object.entries(selected).map(([serviceId, price]) => ({
-      serviceId,
-      price: Number(price) || 0,
-      durationMinutes: services?.find((item) => item.id === serviceId)?.durationMinutes ?? 60,
-    }));
-    await updateUser(user.id, { fullName });
-    await saveProviderProfile({
-      ...(providerProfile ?? emptyProviderProfile(user.id)),
-      bio,
-      serviceArea: area,
-      yearsOfExperience: Number(years) || 1,
-      categoryId,
-      services: offers,
-      isSetupComplete: offers.length > 0 && bio.trim().length > 0 && area.trim().length > 0,
-    });
-    await refresh();
-    setSaving(false);
-    await clearPersistedState(StorageKeys.draftProviderSetup);
-    router.replace('/(provider)/(tabs)');
+    setSaveError('');
+    try {
+      const offers: ProviderService[] = Object.entries(selected).map(([serviceId, price]) => ({
+        serviceId,
+        price: Number(price) || 0,
+        durationMinutes: services?.find((item) => item.id === serviceId)?.durationMinutes ?? 60,
+      }));
+      await updateUser(user.id, { fullName });
+      await saveProviderProfile({
+        ...(providerProfile ?? emptyProviderProfile(user.id)),
+        bio,
+        serviceArea: area,
+        yearsOfExperience: Number(years) || 1,
+        categoryId,
+        services: offers,
+        isSetupComplete: offers.length > 0 && bio.trim().length > 0 && area.trim().length > 0,
+      });
+      await refresh();
+      await clearPersistedState(StorageKeys.draftProviderSetup);
+      router.replace('/(provider)/(tabs)');
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Could not save your profile.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -106,14 +113,12 @@ export default function ProviderSetupScreen() {
           label="Bio"
           value={bio}
           onChangeText={(value) => setDraft((prev) => ({ ...prev, bio: value }))}
-          placeholder="Tell customers about your work"
           multiline
         />
         <InputField
           label="Service area"
           value={area}
           onChangeText={(value) => setDraft((prev) => ({ ...prev, area: value }))}
-          placeholder="e.g. Woodlands and Kabulonga"
           autoCapitalize="words"
         />
         <InputField
@@ -157,6 +162,7 @@ export default function ProviderSetupScreen() {
           );
         })}
         <PrimaryButton label="Save profile" onPress={save} loading={saving} />
+        {saveError ? <Text style={styles.error}>{saveError}</Text> : null}
       </View>
     </Screen>
   );
@@ -172,4 +178,5 @@ const styles = StyleSheet.create({
   chipTextOn: { color: '#FFFFFF' },
   service: { backgroundColor: Colors.surface, borderRadius: Radii.md, padding: 12, gap: 8 },
   serviceName: { color: Colors.charcoal, fontWeight: '700', fontSize: FontSize.md },
+  error: { color: Colors.error, fontSize: FontSize.sm, fontWeight: '600' },
 });

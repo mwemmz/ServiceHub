@@ -11,6 +11,8 @@ interface Props {
   categoryLabel: string;
   serviceDetails: Record<string, ProviderRegistrationService>;
   errors: Record<string, string>;
+  /** Photo verification before portfolio upload. */
+  mode?: 'photo' | 'portfolio' | 'all';
   onChangeDescription: (description: string) => void;
   onChangePhoto: (uri: string) => void;
   onAddPortfolioItem: (serviceId: string, uri: string) => void;
@@ -29,6 +31,7 @@ export function BusinessProfileSetupStep({
   categoryLabel,
   serviceDetails,
   errors,
+  mode = 'all',
   onChangeDescription,
   onChangePhoto,
   onAddPortfolioItem,
@@ -46,37 +49,46 @@ export function BusinessProfileSetupStep({
     },
   ];
 
+  const showPhoto = mode === 'photo' || mode === 'all';
+  const showPortfolio = mode === 'portfolio' || mode === 'all';
+
   return (
     <View style={styles.wrap}>
-      <Text style={styles.sectionTitle}>Business Description</Text>
-      <RegField
-        fieldKey="businessDescription"
-        label="About your business"
-        value={description}
-        onChangeText={onChangeDescription}
-        placeholder="Tell customers a little about your business…"
-        multiline
-        autoCapitalize="sentences"
-        variant="glass"
-      />
+      {showPhoto ? (
+        <>
+          <Text style={styles.sectionTitle}>Business Description</Text>
+          <RegField
+            fieldKey="businessDescription"
+            label="About your business"
+            value={description}
+            onChangeText={onChangeDescription}
+            multiline
+            autoCapitalize="sentences"
+            variant="glass"
+          />
 
-      <Text style={styles.sectionTitle}>Business Profile Photo / Logo</Text>
-      <ProfilePhotoPicker
-        uri={faceUri}
-        size={120}
-        onChange={onChangePhoto}
-        hint="Upload your business logo or a clear profile photo."
-      />
+          <Text style={styles.sectionTitle}>Verification Photo</Text>
+          <ProfilePhotoPicker
+            uri={faceUri}
+            size={120}
+            onChange={onChangePhoto}
+            hint="Take a clear verification photo with the camera, or choose a logo from your gallery."
+          />
+          {errors.face ? <Text style={styles.err}>{errors.face}</Text> : null}
+        </>
+      ) : null}
 
-      <ProviderPortfolioStep
-        groups={groups}
-        serviceDetails={serviceDetails}
-        errors={errors}
-        onAddPortfolioItem={onAddPortfolioItem}
-        onRemovePortfolioItem={onRemovePortfolioItem}
-        onUpdatePortfolioItem={onUpdatePortfolioItem}
-        onReplacePortfolioPhoto={onReplacePortfolioPhoto}
-      />
+      {showPortfolio ? (
+        <ProviderPortfolioStep
+          groups={groups}
+          serviceDetails={serviceDetails}
+          errors={errors}
+          onAddPortfolioItem={onAddPortfolioItem}
+          onRemovePortfolioItem={onRemovePortfolioItem}
+          onUpdatePortfolioItem={onUpdatePortfolioItem}
+          onReplacePortfolioPhoto={onReplacePortfolioPhoto}
+        />
+      ) : null}
     </View>
   );
 }
@@ -89,4 +101,5 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 24,
   },
+  err: { color: RegColors.error, fontSize: 14, fontWeight: '600', textAlign: 'center' },
 });

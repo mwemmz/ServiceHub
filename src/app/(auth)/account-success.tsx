@@ -42,7 +42,7 @@ export default function AccountSuccessScreen() {
       showBackIcon
       step={CUSTOMER_REGISTER_TOTAL_STEPS}
       totalSteps={CUSTOMER_REGISTER_TOTAL_STEPS}
-      title="Account created successfully"
+      title="Account created successfully!"
       subtitle={`Welcome, ${first}! You're ready to book trusted services near you.`}>
       <View style={styles.iconWrap}>
         <Ionicons name="checkmark-circle" size={72} color={RegColors.success} />

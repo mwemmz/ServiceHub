@@ -19,17 +19,33 @@ import { GlassPanel } from '@/components/GlassPanel';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { BrandImages } from '@/constants/assets';
 import { RegColors, ScriptFont } from '@/constants/registrationTheme';
-import { resetCustomerRegistrationDraft } from '@/services/customerRegistrationDraft';
+import { resetProviderRegistrationDraft } from '@/services/providerRegistrationDraft';
 
 const SCRIPT = Platform.select(ScriptFont) ?? 'cursive';
 const SIDE_BY_SIDE_MIN_WIDTH = 700;
 
-/** Choose Customer or Service Provider after Get Started. */
-export default function AccountTypeScreen() {
+/** Choose Individual Provider or Registered Business before registration forms. */
+export default function ProviderTypeScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const sideBySide = width >= SIDE_BY_SIDE_MIN_WIDTH;
   const compact = width < 400;
+
+  async function startIndividual() {
+    await resetProviderRegistrationDraft('individual');
+    router.push({
+      pathname: '/(auth)/register-provider',
+      params: { type: 'individual' },
+    } as Href);
+  }
+
+  async function startBusiness() {
+    await resetProviderRegistrationDraft('business');
+    router.push({
+      pathname: '/(auth)/register-provider',
+      params: { type: 'business' },
+    } as Href);
+  }
 
   return (
     <View style={styles.root}>
@@ -54,7 +70,7 @@ export default function AccountTypeScreen() {
           keyboardShouldPersistTaps="handled"
           bounces={false}>
           <Pressable
-            onPress={() => router.replace('/(auth)/welcome' as Href)}
+            onPress={() => router.replace('/(auth)/account-type' as Href)}
             style={styles.backRow}
             accessibilityRole="button"
             accessibilityLabel="Back">
@@ -73,51 +89,41 @@ export default function AccountTypeScreen() {
 
           <View style={styles.hero}>
             <Text style={[styles.heroMain, compact && styles.heroMainCompact]}>
-              How will you use ServiceHub?
+              What type of service provider are you?
             </Text>
-            <Text style={styles.heroSub}>Choose the account that fits what you need.</Text>
+            <Text style={styles.heroSub}>
+              Individual and business accounts use separate registration forms.
+            </Text>
           </View>
 
           <View style={sideBySide ? styles.cardsRow : styles.cardsCol}>
             <ChoiceCard
               icon={
-                <View style={styles.customerBadge}>
-                  <Ionicons name="person" size={28} color="#FFFFFF" />
+                <View style={styles.individualBadge}>
+                  <Ionicons name="person-outline" size={28} color="#FFFFFF" />
                 </View>
               }
-              title="Customer"
-              body="Find and book trusted service providers near you."
-              buttonLabel="Continue as Customer"
+              title="Individual Provider"
+              body="Offer services independently as an individual professional."
+              buttonLabel="Continue as Individual"
               buttonVariant="gold"
               stretch={sideBySide}
-              onPress={() => {
-                void resetCustomerRegistrationDraft();
-                router.push({ pathname: '/(auth)/register', params: { step: '1' } });
-              }}
+              onPress={() => void startIndividual()}
             />
             <ChoiceCard
               icon={
-                <View style={styles.providerBadge}>
-                  <Ionicons name="construct" size={26} color="#FFFFFF" />
+                <View style={styles.businessBadge}>
+                  <Ionicons name="business-outline" size={26} color="#FFFFFF" />
                 </View>
               }
-              title="Service Provider"
-              body="Offer your services and receive bookings from customers."
-              buttonLabel="Continue as Provider"
+              title="Registered Business"
+              body="Represent a salon, barbershop, repair shop, cleaning business, or other registered business."
+              buttonLabel="Continue as Business"
               buttonVariant="blue"
               stretch={sideBySide}
-              onPress={() => router.push('/(auth)/provider-type' as Href)}
+              onPress={() => void startBusiness()}
             />
           </View>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Sign In"
-            onPress={() => router.push('/(auth)/login' as Href)}
-            style={({ pressed }) => [styles.signInRow, pressed && styles.pressed]}>
-            <Text style={styles.signInMuted}>Already have an account? </Text>
-            <Text style={styles.signInGold}>Sign In</Text>
-          </Pressable>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -200,13 +206,13 @@ const styles = StyleSheet.create({
   hero: { alignItems: 'center', marginBottom: 18, width: '100%' },
   heroMain: {
     color: '#FFFFFF',
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 26,
+    lineHeight: 32,
     fontWeight: '800',
     textAlign: 'center',
     marginBottom: 8,
   },
-  heroMainCompact: { fontSize: 24, lineHeight: 30 },
+  heroMainCompact: { fontSize: 22, lineHeight: 28 },
   heroSub: {
     color: 'rgba(255,255,255,0.9)',
     fontSize: 14,
@@ -215,9 +221,9 @@ const styles = StyleSheet.create({
   },
   cardsRow: { flexDirection: 'row', gap: 10, width: '100%' },
   cardsCol: { flexDirection: 'column', gap: 12, width: '100%' },
-  card: { padding: 18, alignItems: 'center', minHeight: 220 },
+  card: { padding: 18, alignItems: 'center', minHeight: 240 },
   cardIconWrap: { marginBottom: 12 },
-  customerBadge: {
+  individualBadge: {
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -227,7 +233,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.55)',
   },
-  providerBadge: {
+  businessBadge: {
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -252,14 +258,4 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   cta: { width: '100%' },
-  signInRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    marginTop: 22,
-    paddingVertical: 10,
-  },
-  signInMuted: { color: 'rgba(255,255,255,0.78)', fontSize: 14 },
-  signInGold: { color: RegColors.gold, fontWeight: '800', fontSize: 14 },
-  pressed: { opacity: 0.88 },
 });

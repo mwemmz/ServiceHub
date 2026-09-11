@@ -48,7 +48,7 @@ export default function EstimateScreen() {
   }, [draftReady, router]);
 
   async function onRequest() {
-    if (!user || !draft?.location) return;
+    if (!user || !draft?.location || loading) return;
     setLoading(true);
     setError('');
     try {

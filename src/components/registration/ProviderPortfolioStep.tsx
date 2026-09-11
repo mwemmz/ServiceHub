@@ -132,7 +132,6 @@ export function ProviderPortfolioStep({
                             onChangeText={(caption) =>
                               onUpdatePortfolioItem(item.id, work.id, { caption })
                             }
-                            placeholder="Add a caption for this work…"
                             autoCapitalize="sentences"
                             error={errors[captionKey]}
                             variant="glass"
@@ -144,7 +143,6 @@ export function ProviderPortfolioStep({
                             onChangeText={(price) =>
                               onUpdatePortfolioItem(item.id, work.id, { price })
                             }
-                            placeholder="e.g. 350"
                             keyboardType="decimal-pad"
                             error={errors[priceKey]}
                             returnKeyType="done"

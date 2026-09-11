@@ -62,6 +62,7 @@ export default function BookScreen() {
   const price = calculatePrice(data.offer?.price ?? data.service.startingPrice);
 
   async function confirm() {
+    if (loading) return;
     if (!location) {
       setError('Please set your location before booking.');
       return;
@@ -108,7 +109,6 @@ export default function BookScreen() {
             when: value,
           }))
         }
-        placeholder="YYYY-MM-DDTHH:mm"
       />
       <InputField
         label="Notes"
@@ -121,7 +121,6 @@ export default function BookScreen() {
             notes: value,
           }))
         }
-        placeholder="Anything the provider should know"
         multiline
       />
       <View style={styles.card}>

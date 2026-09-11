@@ -2,7 +2,7 @@ import { useCallback, useEffect } from 'react';
 import { BackHandler, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
-import { resetCustomerRegistrationDraft } from '@/services/customerRegistrationDraft';
+import { resetCustomerRegistrationDraft, CUSTOMER_REGISTER_TOTAL_STEPS } from '@/services/customerRegistrationDraft';
 
 /** Android hardware back + shared back logic for customer registration steps. */
 export function useCustomerRegistrationBack(step: number) {
@@ -38,7 +38,7 @@ export function useCustomerRegistrationBack(step: number) {
   return goBack;
 }
 
-/** Back from account-success → review step (step 4) via navigation history. */
+/** Back from account-success → review step via navigation history. */
 export function useCustomerRegistrationSuccessBack() {
   const router = useRouter();
 
@@ -49,7 +49,7 @@ export function useCustomerRegistrationSuccessBack() {
     }
     router.replace({
       pathname: '/(auth)/register',
-      params: { step: '4' },
+      params: { step: String(CUSTOMER_REGISTER_TOTAL_STEPS) },
     } as Href);
   }, [router]);
 }

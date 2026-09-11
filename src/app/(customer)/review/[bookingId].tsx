@@ -23,7 +23,7 @@ export default function ReviewScreen() {
   const { data } = useAsyncData(() => getBookingById(bookingId), [bookingId]);
 
   async function submit() {
-    if (!data || !user) return;
+    if (!data || !user || loading) return;
     setLoading(true);
     setError('');
     try {
@@ -52,7 +52,7 @@ export default function ReviewScreen() {
           </Pressable>
         ))}
       </View>
-      <InputField label="Written review" value={comment} onChangeText={setComment} placeholder="How did it go?" multiline />
+      <InputField label="Written review" value={comment} onChangeText={setComment} multiline />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <PrimaryButton label="Submit review" onPress={submit} loading={loading} disabled={!comment.trim()} />
     </Screen>

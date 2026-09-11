@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, Radii } from '@/constants/theme';
+import { composeZambianPhone, nationalDigitsFromPhone } from '@/utils/registrationValidation';
 
 export type InputFieldHandle = {
   focus: () => void;
@@ -24,6 +25,8 @@ interface Props {
   onChangeText: (text: string) => void;
   placeholder?: string;
   icon?: keyof typeof Ionicons.glyphMap;
+  /** Non-editable country code shown before the input (e.g. +260). */
+  countryCodePrefix?: string;
   secureTextEntry?: boolean;
   keyboardType?: KeyboardTypeOptions;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
@@ -33,6 +36,8 @@ interface Props {
   returnKeyType?: ReturnKeyTypeOptions;
   onSubmitEditing?: TextInputProps['onSubmitEditing'];
   blurOnSubmit?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 /** Glass input with Next/Done support and soft gray focus glow. */
@@ -41,8 +46,9 @@ export const InputField = forwardRef<InputFieldHandle, Props>(function InputFiel
     label,
     value,
     onChangeText,
-    placeholder,
+    placeholder: _placeholder,
     icon,
+    countryCodePrefix,
     secureTextEntry,
     keyboardType,
     autoCapitalize = 'none',
@@ -52,10 +58,12 @@ export const InputField = forwardRef<InputFieldHandle, Props>(function InputFiel
     returnKeyType,
     onSubmitEditing,
     blurOnSubmit,
+    onFocus,
+    onBlur,
   },
   ref,
 ) {
-  const [hidden, setHidden] = useState(secureTextEntry);
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
@@ -79,13 +87,17 @@ export const InputField = forwardRef<InputFieldHandle, Props>(function InputFiel
           !editable && styles.disabled,
         ]}>
         {icon ? <Ionicons name={icon} size={20} color={Colors.accent} /> : null}
+        {countryCodePrefix ? <Text style={styles.prefix}>{countryCodePrefix}</Text> : null}
         <TextInput
           ref={inputRef}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
+          value={countryCodePrefix ? nationalDigitsFromPhone(value) : value}
+          onChangeText={(text) =>
+            onChangeText(countryCodePrefix ? composeZambianPhone(text) : text)
+          }
+          placeholder={undefined}
           placeholderTextColor="rgba(255,255,255,0.42)"
-          secureTextEntry={hidden}
+          maxLength={countryCodePrefix ? 9 : undefined}
+          secureTextEntry={secureTextEntry ? !passwordVisible : false}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
           editable={editable}
@@ -94,8 +106,14 @@ export const InputField = forwardRef<InputFieldHandle, Props>(function InputFiel
           blurOnSubmit={resolvedBlurOnSubmit}
           onSubmitEditing={onSubmitEditing}
           enablesReturnKeyAutomatically={false}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          onFocus={() => {
+            setFocused(true);
+            onFocus?.();
+          }}
+          onBlur={() => {
+            setFocused(false);
+            onBlur?.();
+          }}
           underlineColorAndroid="transparent"
           selectionColor="rgba(180,180,190,0.55)"
           style={[styles.input, multiline && styles.multiline]}
@@ -104,8 +122,16 @@ export const InputField = forwardRef<InputFieldHandle, Props>(function InputFiel
             : {})}
         />
         {secureTextEntry ? (
-          <Pressable onPress={() => setHidden((v) => !v)} accessibilityLabel="Toggle password visibility">
-            <Ionicons name={hidden ? 'eye-outline' : 'eye-off-outline'} size={20} color={Colors.accent} />
+          <Pressable
+            onPress={() => setPasswordVisible((v) => !v)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}>
+            <Ionicons
+              name={passwordVisible ? 'eye-outline' : 'eye-off-outline'}
+              size={20}
+              color={Colors.accent}
+            />
           </Pressable>
         ) : null}
       </View>
@@ -117,6 +143,12 @@ export const InputField = forwardRef<InputFieldHandle, Props>(function InputFiel
 const styles = StyleSheet.create({
   wrap: { gap: 6 },
   label: { color: Colors.whiteSoft, fontSize: FontSize.sm, fontWeight: '600' },
+  prefix: {
+    color: Colors.whiteSoft,
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    marginRight: 2,
+  },
   field: {
     minHeight: 50,
     borderRadius: Radii.md,

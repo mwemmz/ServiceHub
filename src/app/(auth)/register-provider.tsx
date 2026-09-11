@@ -9,9 +9,9 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
-import { PasswordStrength } from '@/components/registration/PasswordStrength';
+import { PasswordPairFields } from '@/components/registration/PasswordPairFields';
 import {
   RegError,
   RegField,
@@ -19,10 +19,8 @@ import {
   RegSecondaryButton,
 } from '@/components/registration/RegControls';
 import { ProfilePhotoPicker } from '@/components/registration/ProfilePhotoPicker';
-import { AuthSignInLink } from '@/components/registration/AuthSignInLink';
 import { BusinessInformationStep } from '@/components/registration/BusinessInformationStep';
 import { BusinessOwnerNrcStep } from '@/components/registration/BusinessOwnerNrcStep';
-import { BusinessPasswordStep } from '@/components/registration/BusinessPasswordStep';
 import { BusinessProfileSetupStep } from '@/components/registration/BusinessProfileSetupStep';
 import { ProviderPortfolioStep } from '@/components/registration/ProviderPortfolioStep';
 import { ProviderServiceDetailsStep } from '@/components/registration/ProviderServiceDetailsStep';
@@ -34,6 +32,7 @@ import { BUSINESS_REGISTRATION_CATEGORIES } from '@/constants/businessRegistrati
 import { TRAVEL_RADII } from '@/constants/providerServices';
 import { RegColors } from '@/constants/registrationTheme';
 import { useAuth } from '@/context/AuthContext';
+import { updateUser } from '@/services/authService';
 import { requestDeviceLocation } from '@/services/locationService';
 import { pickDocumentImage } from '@/services/mediaPicker';
 import {
@@ -44,7 +43,9 @@ import {
   emptyProviderRegistrationForm,
   hydrateProviderRegistrationDraft,
   resetProviderRegistrationDraft,
+  setActiveProviderDraftKind,
   setProviderRegistrationDraft,
+  type ProviderDraftKind,
 } from '@/services/providerRegistrationDraft';
 import type { ProviderRegistrationForm, ProviderRegistrationType } from '@/types/providerRegistration';
 import { PROVIDER_TYPE_LABELS } from '@/types/providerRegistration';
@@ -62,43 +63,70 @@ import {
 } from '@/utils/providerRegistration';
 import {
   friendlyAuthError,
-  isStrongPassword,
+  getConfirmPasswordError,
+  getEmailError,
+  getNrcError,
+  getPasswordError,
+  getPhoneError,
   isValidDateOfBirth,
-  isValidEmail,
-  isValidZambianNrc,
-  isValidZambianPhone,
   normalizeDateOfBirth,
   normalizeZambianPhone,
 } from '@/utils/registrationValidation';
 
-const INDIVIDUAL_TOTAL = 10;
+const INDIVIDUAL_TOTAL = 9;
 const BUSINESS_TOTAL = 6;
+/** Form steps start at 2 — type is chosen on /(auth)/provider-type. */
+const FORM_START_STEP = 2;
+
+function parseProviderDraftKind(raw: string | string[] | undefined): ProviderDraftKind | null {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (value === 'individual' || value === 'business') return value;
+  return null;
+}
 
 export default function RegisterProviderScreen() {
   const router = useRouter();
-  const { register, user } = useAuth();
-  const [step, setStep] = useState(1);
-  const [form, setForm] = useState<ProviderRegistrationForm>(emptyProviderRegistrationForm());
+  const params = useLocalSearchParams<{ type?: string }>();
+  const draftKind = parseProviderDraftKind(params.type);
+  const { register, user, refresh } = useAuth();
+  const [step, setStep] = useState(FORM_START_STEP);
+  const [form, setForm] = useState<ProviderRegistrationForm>(
+    emptyProviderRegistrationForm(draftKind ?? ''),
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [banner, setBanner] = useState('');
   const [loading, setLoading] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [docBusy, setDocBusy] = useState<string | null>(null);
   const [businessUserId, setBusinessUserId] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    hydrateProviderRegistrationDraft().then((saved) => {
-      setForm(saved.form);
-      setStep(saved.step);
+    if (!draftKind) {
+      router.replace('/(auth)/provider-type' as Href);
+      return;
+    }
+    setActiveProviderDraftKind(draftKind);
+    let cancelled = false;
+    hydrateProviderRegistrationDraft(draftKind).then((saved) => {
+      if (cancelled) return;
+      setForm({ ...saved.form, providerType: draftKind });
+      setStep(Math.max(FORM_START_STEP, saved.step));
       setBusinessUserId(saved.businessUserId);
       setHydrated(true);
     });
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [draftKind, router]);
 
   useEffect(() => {
-    if (!hydrated) return;
-    setProviderRegistrationDraft({ form, step, businessUserId });
-  }, [form, step, businessUserId, hydrated]);
+    if (!hydrated || !draftKind) return;
+    setProviderRegistrationDraft(
+      { form: { ...form, providerType: draftKind }, step, businessUserId },
+      draftKind,
+    );
+  }, [form, step, businessUserId, hydrated, draftKind]);
 
   function patch(partial: Partial<ProviderRegistrationForm>) {
     setForm((prev) => ({ ...prev, ...partial }));
@@ -110,6 +138,11 @@ export default function RegisterProviderScreen() {
           if (key === 'geo') continue;
           delete next[key];
           if (key === 'locationText') delete next.location;
+          if (key === 'faceUri') delete next.face;
+          if (key === 'nrcDocUri' || key === 'nrcDocFileName') delete next.nrcDoc;
+          if (key === 'businessUri' || key === 'businessLicenceFileName') {
+            delete next.businessLicence;
+          }
           if (key === 'businessCategoryIds' || key === 'businessCategoryId') {
             delete next.businessCategory;
           }
@@ -135,7 +168,7 @@ export default function RegisterProviderScreen() {
     [form.selectedServiceIds],
   );
 
-  const isBusiness = form.providerType === 'business';
+  const isBusiness = (draftKind ?? form.providerType) === 'business';
   const totalSteps = isBusiness ? BUSINESS_TOTAL : INDIVIDUAL_TOTAL;
 
   const businessCategoryLabel = useMemo(
@@ -147,12 +180,8 @@ export default function RegisterProviderScreen() {
   const goBack = useCallback(() => {
     setBanner('');
     setErrors({});
-    if (step <= 1) {
-      if (router.canGoBack()) {
-        router.back();
-        return;
-      }
-      router.replace('/(auth)/account-type' as Href);
+    if (step <= FORM_START_STEP) {
+      router.replace('/(auth)/provider-type' as Href);
       return;
     }
     setStep((s) => s - 1);
@@ -289,20 +318,22 @@ export default function RegisterProviderScreen() {
 
     if (s === 2) {
       if (form.providerType === 'individual') {
-        order.push('firstName', 'surname', 'phone', 'email', 'dateOfBirth', 'gender');
-        if (!form.individual.firstName.trim()) next.firstName = 'This field is required.';
-        if (!form.individual.surname.trim()) next.surname = 'This field is required.';
-        if (!form.individual.phone.trim()) next.phone = 'This field is required.';
-        else if (!isValidZambianPhone(form.individual.phone)) {
-          next.phone = 'Use a valid Zambian number, e.g. +260 97 XXX XXXX.';
-        }
-        if (!form.individual.email.trim()) next.email = 'This field is required.';
-        else if (!isValidEmail(form.individual.email)) next.email = 'Enter a valid email address.';
-        if (!form.individual.dateOfBirth.trim()) next.dateOfBirth = 'This field is required.';
+        order.push('firstName', 'surname', 'phone', 'email', 'dateOfBirth', 'gender', 'password', 'confirm');
+        if (!form.individual.firstName.trim()) next.firstName = 'First name is required.';
+        if (!form.individual.surname.trim()) next.surname = 'Surname is required.';
+        const phoneError = getPhoneError(form.individual.phone);
+        if (phoneError) next.phone = phoneError;
+        const emailError = getEmailError(form.individual.email);
+        if (emailError) next.email = emailError;
+        if (!form.individual.dateOfBirth.trim()) next.dateOfBirth = 'Date of birth is required.';
         else if (!isValidDateOfBirth(form.individual.dateOfBirth)) {
           next.dateOfBirth = 'Use date format YYYY-MM-DD or YYYY/MM/DD.';
         }
-        if (!form.individual.gender) next.gender = 'This field is required.';
+        if (!form.individual.gender) next.gender = 'Please select your gender.';
+        const passwordError = getPasswordError(form.password);
+        if (passwordError) next.password = passwordError;
+        const confirmError = getConfirmPasswordError(form.password, form.confirm);
+        if (confirmError) next.confirm = confirmError;
       }
     }
 
@@ -322,15 +353,28 @@ export default function RegisterProviderScreen() {
         const yearsKey = `years:${id}`;
         const daysKey = `days:${id}`;
         order.push(yearsKey, daysKey);
-        if (!detail?.yearsExperience.trim()) next[yearsKey] = 'This field is required.';
+        if (!detail?.yearsExperience.trim()) next[yearsKey] = 'Years of experience is required.';
         else if (Number.isNaN(Number(detail.yearsExperience))) {
-          next[yearsKey] = 'Enter a valid number.';
+          next[yearsKey] = 'Enter a valid number of years.';
         }
         if (!detail?.days.length) next[daysKey] = 'Select at least one working day.';
       }
     }
 
     if (s === 6 && form.providerType === 'individual') {
+      order.push('face');
+      if (!form.faceUri) {
+        next.face = 'Profile photo is required. Please take a photo before continuing.';
+      }
+      order.push('nrcNumber', 'nrcDoc');
+      const nrcError = getNrcError(form.nrcNumber);
+      if (nrcError) next.nrcNumber = nrcError;
+      if (!form.nrcDocUri) {
+        next.nrcDoc = 'NRC document is required. Please upload your NRC before continuing.';
+      }
+    }
+
+    if (s === 7 && form.providerType === 'individual') {
       const minPhotos = 2;
       for (const id of form.selectedServiceIds) {
         const detail = form.serviceDetails[id];
@@ -351,31 +395,12 @@ export default function RegisterProviderScreen() {
       }
     }
 
-    if (s === 7 && form.providerType === 'individual') {
-      order.push('location', 'radius');
-      if (!form.locationText.trim() && !form.geo) next.location = 'This field is required.';
-      if (!form.radiusKm) next.radius = 'This field is required.';
-    }
-
     if (s === 8 && form.providerType === 'individual') {
-      order.push('face');
-      if (!form.faceUri) next.face = 'This field is required.';
-      order.push('nrcNumber', 'nrcDoc');
-      if (!form.nrcNumber.trim()) next.nrcNumber = 'This field is required.';
-      else if (!isValidZambianNrc(form.nrcNumber)) {
-        next.nrcNumber = 'Use NRC format 123456/78/1.';
+      order.push('location', 'radius');
+      if (!form.locationText.trim() && !form.geo) {
+        next.location = 'Service location is required.';
       }
-      if (!form.nrcDocUri) next.nrcDoc = 'This field is required.';
-    }
-
-    if (s === 9 && form.providerType === 'individual') {
-      order.push('password', 'confirm');
-      if (!form.password) next.password = 'This field is required.';
-      else if (!isStrongPassword(form.password)) {
-        next.password = 'Password does not meet the requirements.';
-      }
-      if (!form.confirm) next.confirm = 'This field is required.';
-      else if (form.password !== form.confirm) next.confirm = 'Passwords do not match.';
+      if (!form.radiusKm) next.radius = 'Please select your travel radius.';
     }
 
     setErrors(next);
@@ -397,18 +422,16 @@ export default function RegisterProviderScreen() {
     }
 
     if (s === 2) {
-      order.push('businessName', 'contactPhone', 'contactEmail', 'location');
+      order.push('businessName', 'contactPhone', 'contactEmail', 'password', 'confirm', 'location');
       if (!form.business.businessName.trim()) next.businessName = 'Business name is required.';
-      if (!form.business.contactPhone.trim()) {
-        next.contactPhone = 'Business phone number is required.';
-      } else if (!isValidZambianPhone(form.business.contactPhone)) {
-        next.contactPhone = 'Please enter a valid business phone number.';
-      }
-      if (!form.business.contactEmail.trim()) {
-        next.contactEmail = 'Business email is required.';
-      } else if (!isValidEmail(form.business.contactEmail)) {
-        next.contactEmail = 'Please enter a valid business email.';
-      }
+      const phoneError = getPhoneError(form.business.contactPhone, 'Business phone number');
+      if (phoneError) next.contactPhone = phoneError;
+      const emailError = getEmailError(form.business.contactEmail, 'Business email');
+      if (emailError) next.contactEmail = emailError;
+      const passwordError = getPasswordError(form.password);
+      if (passwordError) next.password = passwordError;
+      const confirmError = getConfirmPasswordError(form.password, form.confirm);
+      if (confirmError) next.confirm = confirmError;
       if (!form.locationText.trim() && !form.geo) {
         next.location = 'Business location is required.';
       }
@@ -416,11 +439,11 @@ export default function RegisterProviderScreen() {
 
     if (s === 3) {
       order.push('nrcNumber');
-      if (!form.nrcNumber.trim()) {
-        next.nrcNumber = "Please enter the owner's/representative's NRC number.";
-      } else if (!isValidZambianNrc(form.nrcNumber)) {
-        next.nrcNumber = 'Use NRC format 123456/78/1.';
-      }
+      const nrcError = getNrcError(
+        form.nrcNumber,
+        "Please enter the owner's/representative's NRC number.",
+      );
+      if (nrcError) next.nrcNumber = nrcError;
     }
 
     if (s === 4) {
@@ -431,13 +454,11 @@ export default function RegisterProviderScreen() {
     }
 
     if (s === 5) {
-      order.push('password', 'confirm');
-      if (!form.password) next.password = 'Password is required.';
-      else if (!isStrongPassword(form.password)) {
-        next.password = 'Password does not meet the requirements.';
+      order.push('businessLicence');
+      if (!form.businessUri) {
+        next.businessLicence =
+          'Business licence is required. Please upload your business licence before continuing.';
       }
-      if (!form.confirm) next.confirm = 'Confirm password is required.';
-      else if (form.password !== form.confirm) next.confirm = 'Passwords do not match.';
     }
 
     if (s === 6) {
@@ -494,8 +515,6 @@ export default function RegisterProviderScreen() {
       });
     }
 
-    if (isBusiness && step === 5) return;
-
     setStep((s) => Math.min(totalSteps, s + 1));
   }
 
@@ -518,11 +537,78 @@ export default function RegisterProviderScreen() {
     }
   }
 
-  async function pickDoc(
-    key: 'nrcDocUri' | 'businessUri' | 'certificateUri' | 'otherDocUri',
+  async function pickSingleDoc(
+    kind: 'nrc' | 'licence',
   ) {
-    const picked = await pickDocumentImage();
-    if (picked) patch({ [key]: picked.uri });
+    if (docBusy) return;
+    setDocBusy(kind);
+    try {
+      const picked = await pickDocumentImage();
+      if (!picked) return;
+      if (kind === 'nrc') {
+        patch({
+          nrcDocUri: picked.uri,
+          nrcDocFileName: picked.fileName ?? 'NRC document',
+        });
+      } else {
+        patch({
+          businessUri: picked.uri,
+          businessLicenceFileName: picked.fileName ?? 'Business licence',
+        });
+      }
+    } catch {
+      setBanner("We couldn't upload this document. Please try again.");
+    } finally {
+      setDocBusy(null);
+    }
+  }
+
+  async function addListDoc(kind: 'certifications' | 'supportingDocuments') {
+    if (docBusy) return;
+    setDocBusy(kind);
+    try {
+      const picked = await pickDocumentImage();
+      if (!picked) return;
+      const doc = {
+        id: createId('doc'),
+        uri: picked.uri,
+        fileName: picked.fileName ?? (kind === 'certifications' ? 'Certificate' : 'Supporting document'),
+      };
+      const current = form[kind] ?? [];
+      patch({ [kind]: [...current, doc] });
+    } catch {
+      setBanner("We couldn't upload this document. Please try again.");
+    } finally {
+      setDocBusy(null);
+    }
+  }
+
+  function removeListDoc(kind: 'certifications' | 'supportingDocuments', id: string) {
+    patch({ [kind]: (form[kind] ?? []).filter((d) => d.id !== id) });
+  }
+
+  async function replaceListDoc(kind: 'certifications' | 'supportingDocuments', id: string) {
+    if (docBusy) return;
+    setDocBusy(`${kind}:${id}`);
+    try {
+      const picked = await pickDocumentImage();
+      if (!picked) return;
+      patch({
+        [kind]: (form[kind] ?? []).map((d) =>
+          d.id === id
+            ? {
+                ...d,
+                uri: picked.uri,
+                fileName: picked.fileName ?? d.fileName,
+              }
+            : d,
+        ),
+      });
+    } catch {
+      setBanner("We couldn't upload this document. Please try again.");
+    } finally {
+      setDocBusy(null);
+    }
   }
 
   function buildProviderInfo(): ProviderApplicationInfo {
@@ -610,8 +696,12 @@ export default function RegisterProviderScreen() {
       documents: {
         nrcUri: form.nrcDocUri,
         businessUri: form.businessUri || undefined,
-        certificateUri: form.certificateUri || undefined,
-        otherUri: form.otherDocUri || undefined,
+        certificateUri:
+          (form.certifications ?? [])[0]?.uri || form.certificateUri || undefined,
+        otherUri:
+          (form.supportingDocuments ?? [])[0]?.uri || form.otherDocUri || undefined,
+        certificationUris: (form.certifications ?? []).map((d) => d.uri),
+        supportingUris: (form.supportingDocuments ?? []).map((d) => d.uri),
       },
       service: primary
         ? {
@@ -628,10 +718,11 @@ export default function RegisterProviderScreen() {
   }
 
   async function onCreateAccount() {
-    for (const s of [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
+    if (loading) return;
+    for (const s of [2, 3, 4, 5, 6, 7, 8]) {
       if (!validateStep(s)) {
         setBanner('Please complete all required steps before submitting.');
-        setStep(s);
+        setStep(Math.max(FORM_START_STEP, s));
         return;
       }
     }
@@ -660,7 +751,15 @@ export default function RegisterProviderScreen() {
       });
 
       await submitProviderApplication(created.id);
-      await resetProviderRegistrationDraft();
+      try {
+        await updateUser(created.id, {
+          providerKind: draftKind === 'business' ? 'business' : 'individual',
+        });
+        await refresh();
+      } catch {
+        // best-effort subtype stamp for local session routing
+      }
+      await resetProviderRegistrationDraft(draftKind ?? 'individual');
       router.replace('/(provider)/(tabs)');
     } catch (err) {
       setBanner(friendlyAuthError(err));
@@ -669,10 +768,12 @@ export default function RegisterProviderScreen() {
     }
   }
 
-  async function onCreateBusinessAccount() {
-    for (const s of [1, 2, 3, 4, 5]) {
+  async function onCompleteBusinessProfile() {
+    if (loading) return;
+    for (const s of [2, 3, 4, 5, 6]) {
       if (!validateBusinessStep(s)) {
-        setStep(s);
+        setBanner('Please complete all required steps before creating your account.');
+        setStep(Math.max(FORM_START_STEP, s));
         return;
       }
     }
@@ -680,42 +781,32 @@ export default function RegisterProviderScreen() {
     setLoading(true);
     setBanner('');
     try {
-      const phone = normalizeZambianPhone(form.business.contactPhone);
-      const email = form.business.contactEmail.trim().toLowerCase();
-      const { user: created } = await register({
-        fullName: form.business.businessName.trim(),
-        email,
-        phone,
-        password: form.password,
-        role: 'provider',
-      });
-      setBusinessUserId(created.id);
-      patch({
-        business: { ...form.business, contactPhone: phone, contactEmail: email },
-      });
-      setStep(6);
-    } catch (err) {
-      setBanner(friendlyAuthError(err));
-    } finally {
-      setLoading(false);
-    }
-  }
+      let userId = businessUserId ?? user?.id;
+      if (!userId) {
+        const phone = normalizeZambianPhone(form.business.contactPhone);
+        const email = form.business.contactEmail.trim().toLowerCase();
+        const { user: created } = await register({
+          fullName: form.business.businessName.trim(),
+          email,
+          phone,
+          password: form.password,
+          role: 'provider',
+        });
+        userId = created.id;
+        setBusinessUserId(userId);
+        patch({
+          business: { ...form.business, contactPhone: phone, contactEmail: email },
+        });
+      }
 
-  async function onCompleteBusinessProfile() {
-    if (!validateBusinessStep(6)) return;
-
-    const userId = businessUserId ?? user?.id;
-    if (!userId) {
-      setBanner('Please create your business account first.');
-      setStep(5);
-      return;
-    }
-
-    setLoading(true);
-    setBanner('');
-    try {
       await submitProviderApplication(userId);
-      await resetProviderRegistrationDraft();
+      try {
+        await updateUser(userId, { providerKind: 'business' });
+        await refresh();
+      } catch {
+        // best-effort
+      }
+      await resetProviderRegistrationDraft('business');
       router.replace('/(provider)/(tabs)');
     } catch (err) {
       setBanner(friendlyAuthError(err));
@@ -746,19 +837,18 @@ export default function RegisterProviderScreen() {
       subtitle: 'Add details for every service you selected.',
     },
     6: {
+      title: 'Verification',
+      subtitle: 'Take your profile photo with the camera, then upload your NRC and any certifications.',
+    },
+    7: {
       title: 'Upload Your Latest Work',
       subtitle: 'Show customers your latest work by uploading photos of your services.',
     },
-    7: {
+    8: {
       title: 'Where Do You Provide Your Services?',
       subtitle: 'Help customers find you nearby.',
     },
-    8: {
-      title: 'Verification',
-      subtitle: 'Profile photo and documents for verification only.',
-    },
-    9: { title: 'Account Security', subtitle: 'Create a strong password.' },
-    10: {
+    9: {
       title: 'Review Your Provider Profile',
       subtitle: 'Confirm everything customers will see.',
     },
@@ -784,17 +874,19 @@ export default function RegisterProviderScreen() {
       subtitle: 'Select the category that best describes your business.',
     },
     5: {
-      title: 'Create Your Business Account',
-      subtitle:
-        'Set up your business profile and connect with customers looking for your services.',
+      title: 'Business Documents',
+      subtitle: 'Upload your business licence and any supporting documents.',
     },
     6: {
-      title: 'Complete Your Business Profile',
-      subtitle: 'Add your logo, description, and showcase your work.',
+      title: 'Upload Your Latest Work',
+      subtitle: 'Show customers your latest work by uploading photos of your services.',
     },
   };
 
-  const meta = (isBusiness ? businessTitles : individualTitles)[step];
+  const meta = (isBusiness ? businessTitles : individualTitles)[step] ?? {
+    title: 'Create Your Account',
+    subtitle: undefined,
+  };
   const categoryStep =
     (isBusiness && step === 4) || (form.providerType === 'individual' && step === 3);
 
@@ -816,26 +908,8 @@ export default function RegisterProviderScreen() {
       title={meta.title}
       subtitle={meta.subtitle}
       embedHeaderInPanel={categoryStep}
-      categoryPanelLayout={categoryStep}>
-      {step === 1 ? (
-        <>
-          <Text style={styles.label}>How are you registering?</Text>
-          {(['individual', 'business'] as ProviderRegistrationType[]).map((type) => (
-            <Pressable
-              key={type}
-              onPress={() => patch({ providerType: type })}
-              style={[styles.typeRow, form.providerType === type && styles.typeRowSelected]}>
-              <View style={[styles.radio, form.providerType === type && styles.radioSelected]} />
-              <Text style={styles.typeLabel}>{PROVIDER_TYPE_LABELS[type]}</Text>
-            </Pressable>
-          ))}
-          {errors.providerType ? <Text style={styles.err}>{errors.providerType}</Text> : null}
-          <RegError message={banner} />
-          <RegPrimaryButton label="Continue" onPress={goNext} />
-          <AuthSignInLink />
-        </>
-      ) : null}
-
+      categoryPanelLayout={categoryStep}
+      showProgress={false}>
       {step === 2 && isBusiness ? (
         <>
           <BusinessInformationStep
@@ -847,6 +921,8 @@ export default function RegisterProviderScreen() {
             locating={locating}
             errors={errors}
             locationMessage={banner}
+            password={form.password}
+            confirm={form.confirm}
             onChange={({ businessName, contactPhone, contactEmail, locationText }) => {
               patch({
                 business: {
@@ -858,6 +934,8 @@ export default function RegisterProviderScreen() {
                 ...(locationText !== undefined ? { locationText, geo: null } : {}),
               });
             }}
+            onChangePassword={(password) => patch({ password })}
+            onChangeConfirm={(confirm) => patch({ confirm })}
             onUseLocation={onUseLocation}
           />
           <RegPrimaryButton label="Continue" onPress={goNext} />
@@ -900,26 +978,50 @@ export default function RegisterProviderScreen() {
 
       {step === 5 && isBusiness ? (
         <>
-          <BusinessPasswordStep
-            password={form.password}
-            confirm={form.confirm}
-            errors={errors}
-            onChangePassword={(password) => patch({ password })}
-            onChangeConfirm={(confirm) => patch({ confirm })}
+          <Text style={styles.label}>Business Description</Text>
+          <RegField
+            fieldKey="businessDescription"
+            label="About your business"
+            value={form.business.description}
+            onChangeText={(description) =>
+              patch({ business: { ...form.business, description } })
+            }
+            multiline
+            autoCapitalize="sentences"
+            variant="glass"
           />
+          <DocUpload
+            label="Business Licence"
+            required
+            uri={form.businessUri}
+            fileName={form.businessLicenceFileName}
+            loading={docBusy === 'licence'}
+            onPick={() => pickSingleDoc('licence')}
+            onClear={() => patch({ businessUri: '', businessLicenceFileName: '' })}
+            error={errors.businessLicence}
+          />
+          <MultiDocUpload
+            label="Supporting Documents"
+            hint="Business registration, permits, certificates, or other relevant documents (optional)."
+            docs={form.supportingDocuments ?? []}
+            loading={
+              docBusy === 'supportingDocuments' ||
+              Boolean(docBusy?.startsWith('supportingDocuments:'))
+            }
+            onAdd={() => addListDoc('supportingDocuments')}
+            onReplace={(id) => replaceListDoc('supportingDocuments', id)}
+            onRemove={(id) => removeListDoc('supportingDocuments', id)}
+          />
+          <Text style={styles.note}>Documents are used for verification only and stay private.</Text>
           <RegError message={banner} />
-          <RegPrimaryButton
-            label="Create Business Account"
-            loading={loading}
-            loadingLabel="Creating account…"
-            onPress={onCreateBusinessAccount}
-          />
+          <RegPrimaryButton label="Continue" onPress={goNext} />
         </>
       ) : null}
 
       {step === 6 && isBusiness ? (
         <>
           <BusinessProfileSetupStep
+            mode="portfolio"
             description={form.business.description}
             faceUri={form.faceUri}
             categoryLabel={businessCategoryLabel}
@@ -936,9 +1038,9 @@ export default function RegisterProviderScreen() {
           />
           <RegError message={banner} />
           <RegPrimaryButton
-            label="Complete Business Profile"
+            label="Create Business Account"
             loading={loading}
-            loadingLabel="Saving profile…"
+            loadingLabel="Creating account…"
             onPress={onCompleteBusinessProfile}
           />
         </>
@@ -972,8 +1074,8 @@ export default function RegisterProviderScreen() {
             label="Contact Number"
             value={form.individual.phone}
             onChangeText={(phone) => patch({ individual: { ...form.individual, phone } })}
-            placeholder="+260 97 XXX XXXX"
             keyboardType="phone-pad"
+            countryCodePrefix="+260"
             error={errors.phone}
           />
           <RegField
@@ -992,7 +1094,6 @@ export default function RegisterProviderScreen() {
             onChangeText={(dateOfBirth) =>
               patch({ individual: { ...form.individual, dateOfBirth } })
             }
-            placeholder="YYYY-MM-DD or YYYY/MM/DD"
             error={errors.dateOfBirth}
           />
           <Text style={styles.label}>Gender</Text>
@@ -1007,6 +1108,14 @@ export default function RegisterProviderScreen() {
             ))}
           </View>
           {errors.gender ? <Text style={styles.err}>{errors.gender}</Text> : null}
+          <PasswordPairFields
+            password={form.password}
+            confirm={form.confirm}
+            errors={errors}
+            onChangePassword={(password) => patch({ password })}
+            onChangeConfirm={(confirm) => patch({ confirm })}
+            onConfirmSubmit={goNext}
+          />
           <RegPrimaryButton label="Continue" onPress={goNext} />
         </>
       ) : null}
@@ -1064,6 +1173,50 @@ export default function RegisterProviderScreen() {
 
       {step === 6 && form.providerType === 'individual' ? (
         <>
+          <ProfilePhotoPicker
+            uri={form.faceUri}
+            size={140}
+            cameraRequired
+            onChange={(faceUri) => patch({ faceUri })}
+            hint="Take a clear photo of your face using your device camera. This photo is required."
+          />
+          {errors.face ? <Text style={styles.err}>{errors.face}</Text> : null}
+          <RegField
+            fieldKey="nrcNumber"
+            label="NRC Number"
+            value={form.nrcNumber}
+            onChangeText={(nrcNumber) => patch({ nrcNumber })}
+            error={errors.nrcNumber}
+          />
+          <DocUpload
+            label="NRC Document"
+            required
+            uri={form.nrcDocUri}
+            fileName={form.nrcDocFileName}
+            loading={docBusy === 'nrc'}
+            onPick={() => pickSingleDoc('nrc')}
+            onClear={() => patch({ nrcDocUri: '', nrcDocFileName: '' })}
+            error={errors.nrcDoc}
+          />
+          <MultiDocUpload
+            label="Professional Certification (if applicable)"
+            hint="Chef, beauty, plumbing, electrical, or other relevant certificates — optional."
+            docs={form.certifications ?? []}
+            loading={
+              docBusy === 'certifications' || Boolean(docBusy?.startsWith('certifications:'))
+            }
+            onAdd={() => addListDoc('certifications')}
+            onReplace={(id) => replaceListDoc('certifications', id)}
+            onRemove={(id) => removeListDoc('certifications', id)}
+          />
+          <Text style={styles.note}>Documents are used for verification only and stay private.</Text>
+          <RegError message={banner} />
+          <RegPrimaryButton label="Continue" onPress={goNext} />
+        </>
+      ) : null}
+
+      {step === 7 && form.providerType === 'individual' ? (
+        <>
           <ProviderPortfolioStep
             groups={groupedServices}
             serviceDetails={form.serviceDetails}
@@ -1077,7 +1230,7 @@ export default function RegisterProviderScreen() {
         </>
       ) : null}
 
-      {step === 7 && form.providerType === 'individual' ? (
+      {step === 8 && form.providerType === 'individual' ? (
         <>
           <RegSecondaryButton
             label="Use My Current Location"
@@ -1091,7 +1244,6 @@ export default function RegisterProviderScreen() {
             label="Enter Location Manually"
             value={form.locationText}
             onChangeText={(locationText) => patch({ locationText, geo: null })}
-            placeholder="Area, city — e.g. Roma, Lusaka"
             autoCapitalize="words"
             error={errors.location}
           />
@@ -1112,72 +1264,7 @@ export default function RegisterProviderScreen() {
         </>
       ) : null}
 
-      {step === 8 && form.providerType === 'individual' ? (
-        <>
-          <ProfilePhotoPicker
-            uri={form.faceUri}
-            size={140}
-            onChange={(faceUri) => patch({ faceUri })}
-            hint="Use a clear photo — your face or business logo."
-          />
-          {errors.face ? <Text style={styles.err}>{errors.face}</Text> : null}
-          {form.providerType === 'individual' ? (
-            <>
-              <RegField
-                fieldKey="nrcNumber"
-                label="NRC Number"
-                value={form.nrcNumber}
-                onChangeText={(nrcNumber) => patch({ nrcNumber })}
-                placeholder="123456/78/1"
-                error={errors.nrcNumber}
-              />
-              <DocUpload
-                label="NRC / ID"
-                required
-                uri={form.nrcDocUri}
-                onPick={() => pickDoc('nrcDocUri')}
-                onClear={() => patch({ nrcDocUri: '' })}
-                error={errors.nrcDoc}
-              />
-            </>
-          ) : null}
-          <DocUpload
-            label="Professional Certificate"
-            uri={form.certificateUri}
-            onPick={() => pickDoc('certificateUri')}
-            onClear={() => patch({ certificateUri: '' })}
-          />
-          <Text style={styles.note}>Documents are used for verification only and stay private.</Text>
-          <RegPrimaryButton label="Continue" onPress={goNext} />
-        </>
-      ) : null}
-
       {step === 9 && form.providerType === 'individual' ? (
-        <>
-          <RegField
-            fieldKey="password"
-            nextFieldKey="confirm"
-            label="Password"
-            value={form.password}
-            onChangeText={(password) => patch({ password })}
-            secureTextEntry
-            error={errors.password}
-          />
-          <PasswordStrength password={form.password} />
-          <RegField
-            fieldKey="confirm"
-            label="Confirm Password"
-            value={form.confirm}
-            onChangeText={(confirm) => patch({ confirm })}
-            secureTextEntry
-            error={errors.confirm}
-            returnKeyType="done"
-          />
-          <RegPrimaryButton label="Continue" onPress={goNext} />
-        </>
-      ) : null}
-
-      {step === 10 && form.providerType === 'individual' ? (
         <>
           <View style={styles.reviewHero}>
             <Text style={styles.reviewName}>{displayName}</Text>
@@ -1247,7 +1334,7 @@ export default function RegisterProviderScreen() {
           ))}
           <Summary
             title="Location"
-            onEdit={() => setStep(7)}
+            onEdit={() => setStep(8)}
             lines={[form.locationText, `Travel: ${form.radiusKm} km`]}
           />
           <RegError message={banner} />
@@ -1283,6 +1370,8 @@ function DocUpload({
   label,
   required,
   uri,
+  fileName,
+  loading,
   onPick,
   onClear,
   error,
@@ -1290,6 +1379,8 @@ function DocUpload({
   label: string;
   required?: boolean;
   uri: string;
+  fileName?: string;
+  loading?: boolean;
   onPick: () => void;
   onClear: () => void;
   error?: string;
@@ -1306,7 +1397,9 @@ function DocUpload({
         <View style={styles.docPreviewRow}>
           <Image source={{ uri }} style={styles.docThumb} />
           <View style={{ flex: 1, gap: 6 }}>
-            <Text style={styles.summaryLine}>Document selected</Text>
+            <Text style={styles.summaryLine} numberOfLines={2}>
+              {fileName?.trim() || 'Document selected'}
+            </Text>
             <View style={styles.chipRow}>
               <Chip label="Replace" selected={false} onPress={onPick} />
               <Chip label="Remove" selected={false} onPress={onClear} />
@@ -1314,9 +1407,63 @@ function DocUpload({
           </View>
         </View>
       ) : (
-        <RegSecondaryButton label="Upload" icon="cloud-upload-outline" onPress={onPick} />
+        <RegSecondaryButton
+          label="Upload"
+          icon="cloud-upload-outline"
+          loading={loading}
+          loadingLabel="Opening…"
+          onPress={onPick}
+        />
       )}
       {error ? <Text style={styles.err}>{error}</Text> : null}
+    </View>
+  );
+}
+
+function MultiDocUpload({
+  label,
+  hint,
+  docs,
+  loading,
+  onAdd,
+  onReplace,
+  onRemove,
+}: {
+  label: string;
+  hint?: string;
+  docs: { id: string; uri: string; fileName: string }[];
+  loading?: boolean;
+  onAdd: () => void;
+  onReplace: (id: string) => void;
+  onRemove: (id: string) => void;
+}) {
+  return (
+    <View style={styles.docCard}>
+      <Text style={styles.summaryTitle}>
+        {label} <Text style={styles.opt}>Optional</Text>
+      </Text>
+      {hint ? <Text style={styles.note}>{hint}</Text> : null}
+      {docs.map((doc) => (
+        <View key={doc.id} style={styles.docPreviewRow}>
+          <Image source={{ uri: doc.uri }} style={styles.docThumb} />
+          <View style={{ flex: 1, gap: 6 }}>
+            <Text style={styles.summaryLine} numberOfLines={2}>
+              {doc.fileName || 'Document selected'}
+            </Text>
+            <View style={styles.chipRow}>
+              <Chip label="Replace" selected={false} onPress={() => onReplace(doc.id)} />
+              <Chip label="Remove" selected={false} onPress={() => onRemove(doc.id)} />
+            </View>
+          </View>
+        </View>
+      ))}
+      <RegSecondaryButton
+        label={docs.length ? 'Add another document' : 'Upload'}
+        icon="cloud-upload-outline"
+        loading={loading}
+        loadingLabel="Opening…"
+        onPress={onAdd}
+      />
     </View>
   );
 }

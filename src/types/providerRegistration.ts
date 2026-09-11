@@ -49,6 +49,13 @@ export type RegisteredBusinessProviderInfo = {
   taxId: string;
 };
 
+/** Uploaded document (NRC, licence, certificate, supporting). */
+export type ProviderUploadedDoc = {
+  id: string;
+  uri: string;
+  fileName: string;
+};
+
 export type ProviderRegistrationForm = {
   providerType: ProviderRegistrationType | '';
   individual: IndividualProviderInfo;
@@ -66,9 +73,18 @@ export type ProviderRegistrationForm = {
   geo: GeoLocation | null;
   radiusKm: string;
   nrcDocUri: string;
+  nrcDocFileName: string;
+  /** Business licence (required for business providers). */
   businessUri: string;
+  businessLicenceFileName: string;
+  /** @deprecated prefer certifications[] — kept for draft compatibility */
   certificateUri: string;
+  /** Optional professional certifications (individual). */
+  certifications: ProviderUploadedDoc[];
+  /** @deprecated prefer supportingDocuments[] */
   otherDocUri: string;
+  /** Optional supporting business documents. */
+  supportingDocuments: ProviderUploadedDoc[];
   password: string;
   confirm: string;
 };

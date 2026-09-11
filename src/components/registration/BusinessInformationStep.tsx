@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { ActivityIndicator, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { LocationPinMap } from '@/components/LocationPinMap';
+import { PasswordPairFields } from '@/components/registration/PasswordPairFields';
 import { RegField, RegSecondaryButton } from '@/components/registration/RegControls';
 import { RegColors } from '@/constants/registrationTheme';
 import type { GeoLocation } from '@/types';
@@ -14,12 +15,16 @@ interface Props {
   locating: boolean;
   errors: Record<string, string>;
   locationMessage?: string;
+  password: string;
+  confirm: string;
   onChange: (patch: {
     businessName?: string;
     contactPhone?: string;
     contactEmail?: string;
     locationText?: string;
   }) => void;
+  onChangePassword: (password: string) => void;
+  onChangeConfirm: (confirm: string) => void;
   onUseLocation: () => void;
 }
 
@@ -32,7 +37,11 @@ export function BusinessInformationStep({
   locating,
   errors,
   locationMessage,
+  password,
+  confirm,
   onChange,
+  onChangePassword,
+  onChangeConfirm,
   onUseLocation,
 }: Props) {
   const autoGpsStarted = useRef(false);
@@ -54,7 +63,6 @@ export function BusinessInformationStep({
         label="Business Name"
         value={businessName}
         onChangeText={(businessName) => onChange({ businessName })}
-        placeholder="Enter your business name"
         autoCapitalize="words"
         error={errors.businessName}
         variant="glass"
@@ -65,21 +73,30 @@ export function BusinessInformationStep({
         label="Business Phone Number"
         value={contactPhone}
         onChangeText={(contactPhone) => onChange({ contactPhone })}
-        placeholder="Enter business phone number"
         keyboardType="phone-pad"
+        countryCodePrefix="+260"
         error={errors.contactPhone}
         variant="glass"
       />
       <RegField
         fieldKey="contactEmail"
-        nextFieldKey="location"
+        nextFieldKey="password"
         label="Business Email"
         value={contactEmail}
         onChangeText={(contactEmail) => onChange({ contactEmail })}
-        placeholder="Enter business email address"
         keyboardType="email-address"
         error={errors.contactEmail}
         variant="glass"
+      />
+
+      <PasswordPairFields
+        password={password}
+        confirm={confirm}
+        errors={errors}
+        onChangePassword={onChangePassword}
+        onChangeConfirm={onChangeConfirm}
+        variant="glass"
+        confirmNextFieldKey="location"
       />
 
       <Text style={styles.sectionTitle}>Business Location</Text>
@@ -115,7 +132,6 @@ export function BusinessInformationStep({
         label={geo ? 'Detected address' : 'Or enter address manually'}
         value={locationText}
         onChangeText={(locationText) => onChange({ locationText })}
-        placeholder="Enter or select your business location"
         autoCapitalize="words"
         error={errors.location}
         variant="glass"

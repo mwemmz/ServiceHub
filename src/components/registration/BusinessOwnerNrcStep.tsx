@@ -20,7 +20,6 @@ export function BusinessOwnerNrcStep({ nrcNumber, error, onChange }: Props) {
         label="Owner/Representative NRC Number"
         value={nrcNumber}
         onChangeText={onChange}
-        placeholder="Enter NRC number"
         error={error}
         variant="glass"
       />

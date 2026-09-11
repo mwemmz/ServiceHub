@@ -20,19 +20,26 @@ export default function AvailabilityScreen() {
     providerProfile?.availability ?? [],
   );
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   function update(day: AvailabilitySlot['day'], patch: Partial<AvailabilitySlot>) {
     setSlots((current) => current.map((slot) => (slot.day === day ? { ...slot, ...patch } : slot)));
   }
 
   async function save() {
-    if (!providerProfile) return;
+    if (!providerProfile || saving) return;
     setSaving(true);
-    await saveProviderProfile({ ...providerProfile, availability: slots });
-    await refresh();
-    setSaving(false);
-    await clearPersistedState(StorageKeys.draftProviderAvailability);
-    router.back();
+    setSaveError('');
+    try {
+      await saveProviderProfile({ ...providerProfile, availability: slots });
+      await refresh();
+      await clearPersistedState(StorageKeys.draftProviderAvailability);
+      router.back();
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Could not save hours.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -62,6 +69,7 @@ export default function AvailabilityScreen() {
           </View>
         ))}
         <PrimaryButton label="Save hours" onPress={save} loading={saving} />
+        {saveError ? <Text style={styles.error}>{saveError}</Text> : null}
       </View>
     </Screen>
   );
@@ -73,4 +81,5 @@ const styles = StyleSheet.create({
   day: { color: Colors.charcoal, fontWeight: '800', fontSize: FontSize.md },
   times: { flexDirection: 'row', gap: 10 },
   off: { color: Colors.textMuted },
+  error: { color: Colors.error, fontSize: FontSize.sm, fontWeight: '600' },
 });

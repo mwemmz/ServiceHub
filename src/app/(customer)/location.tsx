@@ -60,7 +60,7 @@ export default function LocationScreen() {
         This is not a fake GPS location. Until you allow location access or type an address, ServiceHub will not pretend to know where you are.
       </Text>
       <PrimaryButton label={isLocating ? 'Getting location...' : 'Use my current location'} onPress={useDevice} loading={isLocating} />
-      <InputField label="Address" value={address} onChangeText={setAddress} placeholder="e.g. Woodlands, Lusaka" autoCapitalize="words" />
+      <InputField label="Address" value={address} onChangeText={setAddress} autoCapitalize="words" />
       {error || localError ? <Text style={styles.error}>{error || localError}</Text> : null}
       <SecondaryButton label="Save address" onPress={saveManual} disabled={!address.trim() || saving} />
       {location ? (

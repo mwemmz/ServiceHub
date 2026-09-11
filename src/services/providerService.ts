@@ -117,10 +117,16 @@ export async function getProviderById(userId: string): Promise<ProviderListItem 
         : (data as ApiProvider);
     if (item?.id || item?.user_id) return mapProvider(item);
   } catch {
-    // fall through
+    // Skip listing every provider — that extra remote call left registration stuck on Loading.
   }
-  const all = await getProviders();
-  return all.find((item) => item.user.id === userId || item.profile.userId === userId);
+  if (!AppConfig.useLocalCatalogFallback) return undefined;
+  const { getProviderProfiles, getUsers, ensureLocalData } = await import('@/services/localDb');
+  await ensureLocalData();
+  const [users, profiles] = await Promise.all([getUsers(), getProviderProfiles()]);
+  const profile = profiles.find((item) => item.userId === userId);
+  const user = users.find((item) => item.id === userId);
+  if (profile && user) return { user, profile };
+  return undefined;
 }
 
 export async function getProvidersForService(
@@ -255,22 +261,24 @@ export async function saveProviderProfile(profile: ProviderProfile): Promise<voi
     await saveProviderProfiles(profiles);
   }
 
-  // Sync services to API when possible
-  for (const offer of profile.services) {
-    const service = await getService(offer.serviceId);
-    if (!service) continue;
-    try {
-      await api.post('/services', {
-        name: service.name,
-        price: offer.price,
-        duration: offer.durationMinutes,
-        category: service.group,
-        description: service.description,
-      });
-    } catch {
-      // ignore per-service failures
+  // Sync services in the background so profile save is not stuck on Loading.
+  void (async () => {
+    for (const offer of profile.services) {
+      const service = await getService(offer.serviceId);
+      if (!service) continue;
+      try {
+        await api.post('/services', {
+          name: service.name,
+          price: offer.price,
+          duration: offer.durationMinutes,
+          category: service.group,
+          description: service.description,
+        });
+      } catch {
+        // ignore per-service failures
+      }
     }
-  }
+  })();
 }
 
 export async function setProviderOnline(userId: string, isOnline: boolean): Promise<ProviderProfile> {
