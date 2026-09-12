@@ -1,4 +1,5 @@
-import { Alert, Linking, StyleSheet, Text, View } from 'react-native';
+import { Linking, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -9,6 +10,7 @@ import { SecondaryButton } from '@/components/SecondaryButton';
 import { StatusBadge } from '@/components/StatusBadge';
 import { LoadingState } from '@/components/LoadingState';
 import { ErrorState } from '@/components/ErrorState';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Colors, FontSize, Radii } from '@/constants/theme';
 import { useAsyncData } from '@/hooks/useAsyncData';
 import { getBookingById, updateBookingStatus } from '@/services/bookingService';
@@ -22,6 +24,8 @@ export default function BookingStatusScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const [showCancel, setShowCancel] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const { data, loading, error, reload } = useAsyncData(async () => {
     const booking = await getBookingById(id);
     if (!booking) return null;
@@ -78,23 +82,31 @@ export default function BookingStatusScreen() {
         />
       ) : null}
       {booking.status !== 'completed' && booking.status !== 'cancelled' ? (
-        <SecondaryButton
-          label="Cancel booking"
-          onPress={() =>
-            Alert.alert('Cancel this request?', 'The provider will be notified.', [
-              { text: 'Keep booking', style: 'cancel' },
-              {
-                text: 'Cancel request',
-                style: 'destructive',
-                onPress: async () => {
-                  await updateBookingStatus(booking.id, 'cancelled', 'Cancelled by customer');
-                  reload();
-                },
-              },
-            ])
-          }
-        />
+        <SecondaryButton label="Cancel booking" onPress={() => setShowCancel(true)} />
       ) : null}
+      <ConfirmDialog
+        visible={showCancel}
+        title="Cancel this request?"
+        message="The provider will be notified."
+        confirmLabel="Cancel request"
+        cancelLabel="Keep booking"
+        loading={cancelling}
+        onCancel={() => {
+          if (!cancelling) setShowCancel(false);
+        }}
+        onConfirm={async () => {
+          setCancelling(true);
+          try {
+            await updateBookingStatus(booking.id, 'cancelled', 'Cancelled by customer');
+            setShowCancel(false);
+            reload();
+          } catch {
+            setShowCancel(false);
+          } finally {
+            setCancelling(false);
+          }
+        }}
+      />
     </Screen>
   );
 }

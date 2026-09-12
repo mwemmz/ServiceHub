@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { EmptyState } from '@/components/EmptyState';
@@ -10,6 +10,7 @@ import { LoadingState } from '@/components/LoadingState';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Colors, FontSize } from '@/constants/theme';
 import { useAsyncData } from '@/hooks/useAsyncData';
 import { createCrew, deleteCrew, getMyCrews } from '@/services/crewService';
@@ -21,6 +22,7 @@ export default function CrewsScreen() {
   const [name, setName] = useState('');
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState('');
+  const [pendingDelete, setPendingDelete] = useState<Crew | null>(null);
   const { data, loading, error, reload } = useAsyncData(() => getMyCrews());
 
   async function create() {
@@ -40,21 +42,7 @@ export default function CrewsScreen() {
   }
 
   function confirmDelete(crew: Crew) {
-    Alert.alert('Delete crew?', `"${crew.name}" and its memberships will be removed.`, [
-      { text: 'Keep', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteCrew(crew.id);
-            reload();
-          } catch {
-            // leave list as-is
-          }
-        },
-      },
-    ]);
+    setPendingDelete(crew);
   }
 
   if (loading && !data) return <LoadingState />;
@@ -107,6 +95,25 @@ export default function CrewsScreen() {
         {formError ? <Text style={styles.error}>{formError}</Text> : null}
         <PrimaryButton label="Create crew" onPress={create} loading={creating} disabled={!name.trim()} />
       </GlassPanel>
+      <ConfirmDialog
+        visible={pendingDelete !== null}
+        title="Delete crew?"
+        message={pendingDelete ? `"${pendingDelete.name}" and its memberships will be removed.` : ''}
+        confirmLabel="Delete"
+        cancelLabel="Keep"
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={async () => {
+          if (!pendingDelete) return;
+          try {
+            await deleteCrew(pendingDelete.id);
+            reload();
+          } catch {
+            // leave list as-is
+          } finally {
+            setPendingDelete(null);
+          }
+        }}
+      />
     </Screen>
   );
 }

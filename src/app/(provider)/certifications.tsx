@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
@@ -9,6 +9,7 @@ import { LoadingState } from '@/components/LoadingState';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Colors, FontSize } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useAsyncData } from '@/hooks/useAsyncData';
@@ -27,6 +28,7 @@ export default function CertificationsScreen() {
   const [expiryDate, setExpiryDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+  const [pendingDelete, setPendingDelete] = useState<Certification | null>(null);
   const { data, loading, error, reload } = useAsyncData(
     () => getMyCertifications(user!.id),
     [user?.id],
@@ -54,21 +56,7 @@ export default function CertificationsScreen() {
   }
 
   function confirmDelete(cert: Certification) {
-    Alert.alert('Remove certification?', `"${cert.name}" will be removed from your skills passport.`, [
-      { text: 'Keep', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteCertification(cert.id);
-            reload();
-          } catch {
-            // leave list as-is if the delete fails
-          }
-        },
-      },
-    ]);
+    setPendingDelete(cert);
   }
 
   if (loading && !data) return <LoadingState />;
@@ -144,6 +132,29 @@ export default function CertificationsScreen() {
           disabled={!name.trim() || !issuingBody.trim()}
         />
       </GlassPanel>
+      <ConfirmDialog
+        visible={pendingDelete !== null}
+        title="Remove certification?"
+        message={
+          pendingDelete
+            ? `"${pendingDelete.name}" will be removed from your skills passport.`
+            : ''
+        }
+        confirmLabel="Remove"
+        cancelLabel="Keep"
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={async () => {
+          if (!pendingDelete) return;
+          try {
+            await deleteCertification(pendingDelete.id);
+            reload();
+          } catch {
+            // leave list as-is if the delete fails
+          } finally {
+            setPendingDelete(null);
+          }
+        }}
+      />
     </Screen>
   );
 }
