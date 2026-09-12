@@ -3,7 +3,13 @@ services:
     name: servicehub-web
     runtime: node
     plan: free
-    buildCommand: npx expo export --platform web
+    installCommand: npm install --no-audit --no-fund
+    buildCommand: |
+      echo "--- dependency check ---"
+      npm ls expo --depth=0 || echo ">>> expo NOT found in node_modules"
+      if test -d node_modules; then echo ">>> node_modules present: $(ls node_modules | wc -l) entries"; else echo ">>> node_modules MISSING"; fi
+      echo "--- exporting web ---"
+      npx expo export --platform web
     startCommand: npm run serve:web
     envVars:
       - key: EXPO_PUBLIC_API_URL
