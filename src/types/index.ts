@@ -1,4 +1,4 @@
-export type UserRole = 'customer' | 'provider';
+export type UserRole = 'customer' | 'provider' | 'admin';
 
 /** Distinguishes provider account subtypes after registration / login. */
 export type ProviderKind = 'individual' | 'business';

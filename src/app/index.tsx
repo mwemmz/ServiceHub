@@ -14,6 +14,9 @@ export default function SplashGate() {
   if (!user) {
     return <Redirect href={'/(auth)/welcome' as Href} />;
   }
+  if (user.role === 'admin') {
+    return <Redirect href="/(admin)/dashboard" />;
+  }
   if (user.role === 'provider') {
     return <Redirect href="/(provider)/(tabs)" />;
   }

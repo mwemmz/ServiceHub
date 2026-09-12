@@ -22,6 +22,11 @@ export const AppConfig = {
     email: 'rendertest@test.com',
     password: 'password123',
   },
+  /** Shown on the login screen; the live backend bootstraps this admin automatically. */
+  demoAdmin: {
+    email: process.env.EXPO_PUBLIC_DEMO_ADMIN_EMAIL || 'admin@test.com',
+    password: process.env.EXPO_PUBLIC_DEMO_ADMIN_PASSWORD || 'admin123',
+  },
   mapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? '',
   defaultMapRegion: {
     latitude: -15.4167,

@@ -20,7 +20,7 @@ export function mapApiUser(api: ApiUser): User {
     email: api.email,
     phone: api.phone ?? '',
     passwordHash: '',
-    role: api.role === 'admin' ? 'customer' : api.role,
+    role: api.role,
     avatarUri: api.profile_image ?? undefined,
     isVerified: true,
     createdAt: api.createdAt ?? new Date().toISOString(),

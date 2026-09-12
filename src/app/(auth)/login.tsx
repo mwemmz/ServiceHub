@@ -51,6 +51,10 @@ export default function LoginScreen() {
   }
 
   function goAfterLogin(role: string) {
+    if (role === 'admin') {
+      router.replace('/(admin)/dashboard');
+      return;
+    }
     if (role === 'provider') {
       router.replace('/(provider)/(tabs)');
       return;
@@ -138,6 +142,11 @@ export default function LoginScreen() {
           <Text style={styles.muted}>
             Also: {AppConfig.demoProvider.email} / {AppConfig.demoProvider.password}
           </Text>
+          {AppConfig.demoAdmin.email ? (
+            <Text style={styles.muted}>
+              Admin: {AppConfig.demoAdmin.email} / {AppConfig.demoAdmin.password}
+            </Text>
+          ) : null}
         </View>
       </GlassPanel>
     </AppShell>
