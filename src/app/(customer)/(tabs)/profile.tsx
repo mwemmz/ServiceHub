@@ -33,6 +33,8 @@ export default function CustomerProfile() {
         <ProfileMenuRow icon="location-outline" label="Saved locations" onPress={() => open('/(customer)/location')} />
         <ProfileMenuRow icon="calendar-outline" label="Booking history" onPress={() => openTab('bookings')} />
         <ProfileMenuRow icon="notifications-outline" label="Notifications" onPress={() => openTab('notifications')} />
+        <ProfileMenuRow icon="card-outline" label="National ID" onPress={() => open('/(customer)/national-id')} />
+        <ProfileMenuRow icon="shield-outline" label="My reports" onPress={() => open('/(customer)/reports')} />
         <ProfileMenuRow icon="settings-outline" label="Settings" onPress={() => open('/(customer)/settings')} />
         <ProfileMenuRow icon="help-circle-outline" label="Help" onPress={() => open('/(customer)/help')} />
         <ProfileMenuRow

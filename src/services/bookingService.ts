@@ -2,7 +2,7 @@ import { api } from '@/services/apiClient';
 import { geoFromLatLng, mapApiBookingStatus, toApiBookingStatus } from '@/services/apiMappers';
 import { getService } from '@/services/catalogService';
 import { calculatePrice } from '@/utils/format';
-import type { Booking, BookingStatus, GeoLocation } from '@/types';
+import type { Booking, BookingStatus, GeoLocation, WorkHistorySummary } from '@/types';
 
 export interface CreateBookingInput {
   customerId: string;
@@ -11,6 +11,13 @@ export interface CreateBookingInput {
   scheduledAt: string;
   notes: string;
   location: GeoLocation;
+  /** Optional crew (must belong to the chosen provider). */
+  crewId?: string;
+}
+
+export interface WorkHistoryResult {
+  summary: WorkHistorySummary;
+  bookings: Booking[];
 }
 
 interface ApiBooking {
@@ -25,6 +32,8 @@ interface ApiBooking {
   address?: string;
   location_lat?: number;
   location_lng?: number;
+  is_confirmed?: boolean;
+  crew_id?: string;
   createdAt?: string;
   updatedAt?: string;
   created_at?: string;
@@ -57,6 +66,8 @@ function mapBooking(item: ApiBooking): Booking {
     location: geoFromLatLng(item.location_lat, item.location_lng, item.address),
     createdAt: item.createdAt ?? item.created_at ?? new Date().toISOString(),
     updatedAt: item.updatedAt ?? item.updated_at ?? new Date().toISOString(),
+    isConfirmed: Boolean(item.is_confirmed),
+    crewId: item.crew_id ?? undefined,
   };
 }
 
@@ -114,6 +125,19 @@ export async function getBookingsForUser(userId: string, role: 'customer' | 'pro
   );
 }
 
+/** Feature 2 — Confirmed Work History: only bookings marked is_confirmed count. */
+export async function getWorkHistory(userId: string): Promise<WorkHistoryResult> {
+  const data = await api.get<unknown>(`/bookings/provider/${userId}/work-history`);
+  const obj = (data && typeof data === 'object' ? data : {}) as {
+    summary?: WorkHistorySummary;
+    bookings?: ApiBooking[];
+  };
+  return {
+    summary: obj.summary ?? { confirmedJobs: 0, totalEarned: 0, totalJobs: 0 },
+    bookings: (obj.bookings ?? []).map(mapBooking),
+  };
+}
+
 export async function createBooking(input: CreateBookingInput): Promise<Booking> {
   const service = await getService(input.serviceId);
   try {
@@ -125,6 +149,7 @@ export async function createBooking(input: CreateBookingInput): Promise<Booking>
       notes: input.notes,
       location_lat: input.location.latitude,
       location_lng: input.location.longitude,
+      crew_id: input.crewId || undefined,
     });
     const item =
       data && typeof data === 'object' && 'booking' in data

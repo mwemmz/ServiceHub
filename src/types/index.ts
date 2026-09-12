@@ -111,6 +111,10 @@ export interface Booking {
   updatedAt: string;
   cancelReason?: string;
   customerRating?: number;
+  /** True once the job is marked completed — counts toward confirmed work history. */
+  isConfirmed?: boolean;
+  /** Optional crew assigned to this booking (provider crews). */
+  crewId?: string;
 }
 
 export interface Review {
@@ -165,3 +169,75 @@ export interface Session {
 }
 
 export type ProviderSort = 'rating' | 'distance' | 'price' | 'availability';
+
+export interface Certification {
+  id: string;
+  providerId: string;
+  name: string;
+  issuingBody: string;
+  expiryDate: string | null;
+  documentUrl: string | null;
+  isVerified: boolean;
+  createdAt: string;
+}
+
+export interface CrewMember {
+  /** Backend provider profile id (used for add/remove member calls). */
+  memberId: string;
+  userId: string;
+  name: string;
+}
+
+export interface Crew {
+  id: string;
+  leaderId: string;
+  name: string;
+  members: CrewMember[];
+  createdAt: string;
+}
+
+export type DisputeType = 'dispute' | 'safety';
+
+export type DisputeStatus = 'open' | 'resolved' | 'closed';
+
+export interface Dispute {
+  id: string;
+  bookingId: string;
+  reporterId: string;
+  providerId: string;
+  type: DisputeType;
+  reason: string;
+  description: string;
+  status: DisputeStatus;
+  resolutionNote: string;
+  reportedAt: string;
+  createdAt: string;
+}
+
+export interface NationalIdStatus {
+  nationalIdNumber: string | null;
+  verified: boolean;
+}
+
+export interface FinancialSummary {
+  totalEarned: number;
+  totalJobs: number;
+  averagePerJob: string;
+  thisWeekJobs: number;
+  thisMonthJobs: number;
+  repeatCustomers: number;
+  paymentMethods: string[];
+}
+
+export interface CoverageInsights {
+  locationsCount: number;
+  uniqueAreas: number;
+  avgRating: number;
+  activeCrews: number;
+}
+
+export interface WorkHistorySummary {
+  confirmedJobs: number;
+  totalEarned: number;
+  totalJobs: number;
+}

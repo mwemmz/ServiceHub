@@ -34,6 +34,12 @@ export default function ProviderProfile() {
         <ProfileMenuRow icon="time-outline" label="Availability" onPress={() => open('/(provider)/availability')} />
         <ProfileMenuRow icon="location-outline" label="Service area" onPress={() => open('/(provider)/setup')} />
         <ProfileMenuRow icon="star-outline" label="Reviews" onPress={() => open('/(provider)/reviews')} />
+        <ProfileMenuRow icon="ribbon-outline" label="Skills passport" onPress={() => open('/(provider)/certifications')} />
+        <ProfileMenuRow icon="checkmark-done-outline" label="Work history" onPress={() => open('/(provider)/work-history')} />
+        <ProfileMenuRow icon="people-outline" label="My crews" onPress={() => open('/(provider)/crews')} />
+        <ProfileMenuRow icon="shield-outline" label="Reports & disputes" onPress={() => open('/(provider)/reports')} />
+        <ProfileMenuRow icon="analytics-outline" label="Insights" onPress={() => open('/(provider)/insights')} />
+        <ProfileMenuRow icon="card-outline" label="National ID" onPress={() => open('/(provider)/national-id')} />
         <ProfileMenuRow icon="settings-outline" label="Settings" onPress={() => open('/(provider)/settings')} />
         <ProfileMenuRow icon="help-circle-outline" label="Help" onPress={() => open('/(provider)/help')} />
         <ProfileMenuRow

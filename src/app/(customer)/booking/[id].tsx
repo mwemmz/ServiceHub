@@ -71,6 +71,12 @@ export default function BookingStatusScreen() {
           }}
         />
       ) : null}
+      {booking.status !== 'cancelled' ? (
+        <SecondaryButton
+          label="Report a problem"
+          onPress={() => router.push(`/(customer)/dispute/${booking.id}`)}
+        />
+      ) : null}
       {booking.status !== 'completed' && booking.status !== 'cancelled' ? (
         <SecondaryButton
           label="Cancel booking"
