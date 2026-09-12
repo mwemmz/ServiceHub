@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { AppShell } from '@/components/AppShell';
@@ -66,9 +66,7 @@ export default function LoginScreen() {
     try {
       const user = await login(email.trim(), password);
       await clearPersistedState(StorageKeys.draftLogin);
-      Alert.alert('Success', 'Login successful. Welcome to ServiceHub!', [
-        { text: 'Continue', onPress: () => goAfterLogin(user.role) },
-      ]);
+      goAfterLogin(user.role);
     } catch (err) {
       setError(friendlyAuthError(err));
     } finally {

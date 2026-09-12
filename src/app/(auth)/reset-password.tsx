@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { GlassPanel } from '@/components/GlassPanel';
 import { Screen } from '@/components/Screen';
@@ -52,9 +52,7 @@ export default function ResetPasswordScreen() {
     setLoading(true);
     try {
       await resetPassword(params.email, code, password);
-      Alert.alert('Success', 'Your password has been reset successfully.', [
-        { text: 'OK', onPress: () => router.replace('/(auth)/login') },
-      ]);
+      router.replace('/(auth)/login');
     } catch (err) {
       setError(friendlyAuthError(err));
     } finally {
