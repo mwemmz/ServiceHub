@@ -3,8 +3,8 @@ services:
     name: servicehub-web
     runtime: node
     plan: free
-    installCommand: npm install --no-audit --no-fund
     buildCommand: |
+      npm install --no-audit --no-fund
       echo "--- dependency check ---"
       npm ls expo --depth=0 || echo ">>> expo NOT found in node_modules"
       if test -d node_modules; then echo ">>> node_modules present: $(ls node_modules | wc -l) entries"; else echo ">>> node_modules MISSING"; fi
