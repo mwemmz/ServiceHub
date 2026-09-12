@@ -7,6 +7,7 @@ export default {
     name: 'ServiceHub',
     slug: 'ServiceHub',
     version: '1.0.0',
+    platforms: ['ios', 'android', 'web'],
     orientation: 'portrait',
     icon: './assets/images/icon.png',
     scheme: 'servicehub',
