@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: servicehub-web
+    runtime: node
+    plan: free
+    buildCommand: npx expo export --platform web
+    startCommand: npm run serve:web
+    envVars:
+      - key: EXPO_PUBLIC_API_URL
+        value: https://services-booking-backend-3wbl.onrender.com/api
+      - key: EXPO_PUBLIC_SOCKET_URL
+        value: https://services-booking-backend-3wbl.onrender.com
