@@ -44,7 +44,7 @@ export function AppTabBar({ items, activeKey, onChange, onCenterPress, centerIco
           ))}
           <Pressable
             onPress={onCenterPress}
-            style={styles.wideCenter}
+            style={({ pressed }) => [styles.wideCenter, pressed && styles.centerPressed]}
             accessibilityRole="button"
             accessibilityLabel="More">
             <LinearGradient
@@ -82,7 +82,10 @@ export function AppTabBar({ items, activeKey, onChange, onCenterPress, centerIco
         ))}
 
         <View style={styles.centerSlot}>
-          <Pressable onPress={onCenterPress} style={styles.centerOuter} accessibilityLabel="New request">
+          <Pressable
+            onPress={onCenterPress}
+            style={({ pressed }) => [styles.centerOuter, pressed && styles.centerPressed]}
+            accessibilityLabel="New request">
             <LinearGradient
               colors={['#E8B07A', RegColors.gold, RegColors.goldDeep]}
               start={{ x: 0, y: 0 }}
@@ -120,7 +123,11 @@ function TabButton({
   return (
     <Pressable
       onPress={onPress}
-      style={[wide ? styles.tabWide : styles.tab, active && wide && styles.tabWideOn]}
+      style={({ pressed }) => [
+        wide ? styles.tabWide : styles.tab,
+        active && wide && styles.tabWideOn,
+        pressed && styles.tabPressed,
+      ]}
       accessibilityRole="button"
       accessibilityLabel={item.label}>
       <Ionicons
@@ -229,4 +236,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  centerPressed: { transform: [{ scale: 0.92 }] },
+  tabPressed: { transform: [{ scale: 0.95 }] },
 });

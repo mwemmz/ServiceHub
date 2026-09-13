@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { Href } from 'expo-router';
 import { BackButton } from '@/components/BackButton';
-import { Colors, FontSize } from '@/constants/theme';
+import { Colors, FontSize, Tracking } from '@/constants/theme';
 
 interface Props {
   title: string;
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   wrap: { gap: 6, paddingVertical: 8 },
   spacer: { height: 8 },
   center: { gap: 4 },
-  title: { color: Colors.charcoal, fontSize: 26, fontWeight: '800' },
+  title: { color: Colors.charcoal, fontSize: 26, fontWeight: '800', letterSpacing: Tracking.tight, lineHeight: 32 },
   subtitle: { color: Colors.whiteSoft, fontSize: FontSize.sm, lineHeight: 20 },
   right: { position: 'absolute', right: 0, top: 8 },
 });

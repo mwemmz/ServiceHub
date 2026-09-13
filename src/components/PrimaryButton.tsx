@@ -96,5 +96,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   disabled: { opacity: 0.45 },
-  pressed: { opacity: 0.9 },
+  pressed: { opacity: 0.92, transform: [{ scale: 0.98 }] },
 });

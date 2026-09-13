@@ -37,5 +37,5 @@ const styles = StyleSheet.create({
   service: { color: Colors.charcoal, fontSize: FontSize.md, fontWeight: '800' },
   name: { color: Colors.textMuted, marginTop: 2, fontSize: FontSize.sm },
   meta: { color: Colors.textMuted, marginTop: 10, fontSize: FontSize.sm },
-  price: { color: Colors.accent, fontWeight: '800', marginTop: 6, fontSize: FontSize.md },
+  price: { color: Colors.accent, fontWeight: '800', marginTop: 6, fontSize: FontSize.md, fontVariant: ['tabular-nums'] },
 });

@@ -63,6 +63,6 @@ const styles = StyleSheet.create({
   online: { color: Colors.success, fontSize: FontSize.xs, fontWeight: '700' },
   offline: { color: Colors.textLight, fontSize: FontSize.xs, fontWeight: '700' },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 6 },
-  price: { color: Colors.accent, fontWeight: '800', fontSize: FontSize.sm },
+  price: { color: Colors.accent, fontWeight: '800', fontSize: FontSize.sm, fontVariant: ['tabular-nums'] },
   meta: { color: Colors.textMuted, fontSize: FontSize.sm },
 });

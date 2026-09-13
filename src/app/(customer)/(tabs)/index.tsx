@@ -12,7 +12,7 @@ import { ProviderCard } from '@/components/ProviderCard';
 import { BookingCard } from '@/components/BookingCard';
 import { LoadingState } from '@/components/LoadingState';
 import { ErrorState } from '@/components/ErrorState';
-import { Colors, FontSize, Radii, Spacing } from '@/constants/theme';
+import { Colors, FontSize, Radii, Spacing, Tracking } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useAppLocation } from '@/context/LocationContext';
 import { useAsyncData } from '@/hooks/useAsyncData';
@@ -213,6 +213,7 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xxl,
     fontWeight: '800',
     lineHeight: 34,
+    letterSpacing: Tracking.displayTight,
   },
   sub: {
     color: Colors.whiteSoft,
@@ -227,6 +228,7 @@ const styles = StyleSheet.create({
     color: Colors.charcoal,
     fontSize: FontSize.lg,
     fontWeight: '800',
+    letterSpacing: Tracking.section,
   },
   sectionSub: {
     color: Colors.whiteSoft,

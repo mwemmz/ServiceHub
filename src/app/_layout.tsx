@@ -5,12 +5,14 @@ import { useEffect } from 'react';
 import { AuthProvider } from '@/context/AuthContext';
 import { LocationProvider } from '@/context/LocationContext';
 import { installWebAutofillFix } from '@/utils/webAutofillFix';
+import { installWebChrome } from '@/utils/webChrome';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   useEffect(() => {
     installWebAutofillFix();
+    installWebChrome();
     SplashScreen.hideAsync();
   }, []);
 

@@ -118,7 +118,7 @@ function StatCard({ label, value, width }: { label: string; value: string; width
 const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 18 },
   stat: { padding: 14, gap: 4 },
-  statValue: { color: Colors.charcoal, fontSize: 18, fontWeight: '800' },
+  statValue: { color: Colors.charcoal, fontSize: 18, fontWeight: '800', fontVariant: ['tabular-nums'] },
   statLabel: { color: Colors.textMuted, fontSize: FontSize.sm },
   section: { color: Colors.charcoal, fontSize: FontSize.md, fontWeight: '700', marginBottom: 8 },
   empty: { color: Colors.textMuted, fontSize: FontSize.sm },

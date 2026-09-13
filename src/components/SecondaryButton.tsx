@@ -38,5 +38,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   disabled: { opacity: 0.5 },
-  pressed: { opacity: 0.88 },
+  pressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
 });

@@ -94,3 +94,10 @@ export const FontSize = {
   xxl: 28,
   hero: 34,
 } as const;
+
+/** Optical letter-spacing. Use tighter only on large display text, 20px+; -0.4 floor for small type. */
+export const Tracking = {
+  displayTight: -0.8,
+  tight: -0.4,
+  section: -0.2,
+} as const;

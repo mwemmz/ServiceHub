@@ -149,6 +149,7 @@ const styles = StyleSheet.create({
     fontSize: 40,
     lineHeight: 46,
     fontWeight: '800',
+    letterSpacing: -0.8,
     textAlign: 'center',
     marginBottom: 12,
   },

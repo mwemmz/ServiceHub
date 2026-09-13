@@ -40,5 +40,5 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   totalLabel: { color: Colors.charcoal, fontWeight: '800', fontSize: FontSize.md },
-  totalValue: { color: Colors.accent, fontWeight: '800', fontSize: FontSize.md },
+  totalValue: { color: Colors.accent, fontWeight: '800', fontSize: FontSize.md, fontVariant: ['tabular-nums'] },
 });
