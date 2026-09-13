@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type DimensionValue } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ErrorState } from '@/components/ErrorState';
 import { GlassPanel } from '@/components/GlassPanel';
@@ -10,11 +10,14 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { formatDateTime } from '@/components/admin/AdminBits';
 import { Colors, FontSize, Radii } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
+import { useResponsive } from '@/hooks/useResponsive';
 import { getAnalytics, mapRawStatus, type AdminAnalytics } from '@/services/adminService';
 
 export default function DashboardScreen() {
   const router = useRouter();
   const { logout } = useAuth();
+  const { isWide, colWidth } = useResponsive();
+  const statWidth = isWide ? colWidth(4) : '47%';
   const [data, setData] = useState<AdminAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -70,10 +73,10 @@ export default function DashboardScreen() {
       />
 
       <View style={styles.grid}>
-        <StatCard label="Users" value={String(data.totalUsers)} />
-        <StatCard label="Providers" value={String(data.totalProviders)} />
-        <StatCard label="Bookings" value={String(data.totalBookings)} />
-        <StatCard label="Revenue" value={`ZMW ${(data.totalRevenue ?? 0).toFixed(2)}`} />
+        <StatCard label="Users" value={String(data.totalUsers)} width={statWidth} />
+        <StatCard label="Providers" value={String(data.totalProviders)} width={statWidth} />
+        <StatCard label="Bookings" value={String(data.totalBookings)} width={statWidth} />
+        <StatCard label="Revenue" value={`ZMW ${(data.totalRevenue ?? 0).toFixed(2)}`} width={statWidth} />
       </View>
 
       <Text style={styles.section}>Recent Bookings</Text>
@@ -101,9 +104,9 @@ export default function DashboardScreen() {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatCard({ label, value, width }: { label: string; value: string; width: DimensionValue }) {
   return (
-    <GlassPanel borderRadius={14} contentStyle={styles.stat}>
+    <GlassPanel borderRadius={14} contentStyle={[styles.stat, { width }]}>
       <Text style={styles.statValue} numberOfLines={1}>
         {value}
       </Text>
@@ -114,7 +117,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 18 },
-  stat: { width: '47%', padding: 14, gap: 4 },
+  stat: { padding: 14, gap: 4 },
   statValue: { color: Colors.charcoal, fontSize: 18, fontWeight: '800' },
   statLabel: { color: Colors.textMuted, fontSize: FontSize.sm },
   section: { color: Colors.charcoal, fontSize: FontSize.md, fontWeight: '700', marginBottom: 8 },

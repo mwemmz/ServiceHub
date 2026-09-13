@@ -1,10 +1,12 @@
 import { Redirect, Tabs, useRouter } from 'expo-router';
 import { AppTabBar } from '@/components/AppTabBar';
 import { useAuth } from '@/context/AuthContext';
+import { useResponsive } from '@/hooks/useResponsive';
 
 export default function AdminTabs() {
   const router = useRouter();
   const { user } = useAuth();
+  const { isWide } = useResponsive();
 
   if (user?.role !== 'admin') {
     return <Redirect href="/(auth)/welcome" />;
@@ -12,7 +14,7 @@ export default function AdminTabs() {
 
   return (
     <Tabs
-      screenOptions={{ headerShown: false }}
+      screenOptions={{ headerShown: false, tabBarPosition: isWide ? 'top' : 'bottom' }}
       tabBar={({ state, navigation }) => (
         <AppTabBar
           items={[

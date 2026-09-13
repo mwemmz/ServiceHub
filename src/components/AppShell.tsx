@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BrandImages } from '@/constants/assets';
 import { RegColors } from '@/constants/registrationTheme';
 import { Spacing } from '@/constants/theme';
+import { useResponsive } from '@/hooks/useResponsive';
 
 type Edges = ('top' | 'bottom' | 'left' | 'right')[];
 
@@ -37,6 +38,8 @@ export function AppShell({
   contentStyle?: StyleProp<ViewStyle>;
   keyboard?: boolean;
 }) {
+  const { isWide, contentMaxWidth } = useResponsive();
+
   const body = scroll ? (
     <ScrollView
       contentContainerStyle={[styles.scroll, padded && styles.padded, contentStyle]}
@@ -48,6 +51,18 @@ export function AppShell({
     </ScrollView>
   ) : (
     <View style={[styles.fill, padded && styles.padded, contentStyle]}>{children}</View>
+  );
+
+  const column = isWide ? (
+    <View
+      style={[
+        styles.fill,
+        { maxWidth: contentMaxWidth, width: '100%', alignSelf: 'center' },
+      ]}>
+      {body}
+    </View>
+  ) : (
+    body
   );
 
   return (
@@ -66,10 +81,10 @@ export function AppShell({
             style={{ flex: 1 }}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             keyboardVerticalOffset={8}>
-            {body}
+            {column}
           </KeyboardAvoidingView>
         ) : (
-          body
+          column
         )}
       </SafeAreaView>
     </View>

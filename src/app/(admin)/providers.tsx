@@ -8,6 +8,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { StarRating } from '@/components/admin/StarRating';
 import { Pills, VerifiedPill, formatDate } from '@/components/admin/AdminBits';
 import { Colors, FontSize, Radii } from '@/constants/theme';
+import { useResponsive } from '@/hooks/useResponsive';
 import { getProviders, verifyProvider, type AdminProvider } from '@/services/adminService';
 
 const PAGE_SIZE = 20;
@@ -27,6 +28,8 @@ export default function ProvidersScreen() {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState<string | undefined>(undefined);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const { columns } = useResponsive();
+  const cols = columns([1, 2, 2, 3]);
 
   useEffect(() => {
     let mounted = true;
@@ -99,6 +102,8 @@ export default function ProvidersScreen() {
         style={styles.list}
         data={items}
         keyExtractor={(p) => p.id}
+        numColumns={cols}
+        columnWrapperStyle={cols > 1 ? { gap: 12 } : undefined}
         renderItem={({ item }) => (
           <ProviderRow
             provider={item}

@@ -16,6 +16,7 @@ import { Colors, FontSize, Radii, Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useAppLocation } from '@/context/LocationContext';
 import { useAsyncData } from '@/hooks/useAsyncData';
+import { useResponsive } from '@/hooks/useResponsive';
 import { getCategories, getPopularServices, getService } from '@/services/catalogService';
 import { getNearbyProviders } from '@/services/providerService';
 import { getBookingsForUser } from '@/services/bookingService';
@@ -28,6 +29,7 @@ export default function CustomerHome() {
   const router = useRouter();
   const { user } = useAuth();
   const { location } = useAppLocation();
+  const { isWide, colWidth } = useResponsive();
 
   const { data, loading, error, reload } = useAsyncData(async () => {
     const [categories, popular, providers, bookings, users] = await Promise.all([
@@ -106,14 +108,15 @@ export default function CustomerHome() {
         <Text style={styles.sectionTitle}>Choose a category</Text>
         <Text style={styles.sectionSub}>Select a service category to get started.</Text>
       </View>
-      <View style={styles.catList}>
+      <View style={[styles.catList, isWide && styles.catGrid]}>
         {data.categories.map((category) => (
-          <CategoryCard
-            key={category.id}
-            category={category}
-            layout="row"
-            onPress={() => router.push(`/(customer)/request/services?categoryId=${category.id}`)}
-          />
+          <View key={category.id} style={isWide ? { width: colWidth(3), minWidth: 0 } : styles.catRowItem}>
+            <CategoryCard
+              category={category}
+              layout={isWide ? 'tile' : 'row'}
+              onPress={() => router.push(`/(customer)/request/services?categoryId=${category.id}`)}
+            />
+          </View>
         ))}
       </View>
 
@@ -147,13 +150,14 @@ export default function CustomerHome() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{location ? 'Nearby providers' : 'Popular providers'}</Text>
       </View>
-      <View style={styles.stack}>
+      <View style={[styles.stack, isWide && styles.wideGrid]}>
         {data.providers.map((item) => (
-          <ProviderCard
-            key={item.user.id}
-            item={item}
-            onPress={() => router.push(`/(customer)/provider/${item.user.id}`)}
-          />
+          <View key={item.user.id} style={isWide ? { width: colWidth(2), minWidth: 0 } : styles.full}>
+            <ProviderCard
+              item={item}
+              onPress={() => router.push(`/(customer)/provider/${item.user.id}`)}
+            />
+          </View>
         ))}
       </View>
 
@@ -231,6 +235,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   catList: { gap: 10 },
+  catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'stretch' },
+  catRowItem: { width: '100%' },
   banner: {
     backgroundColor: 'rgba(212,163,115,0.16)',
     borderRadius: Radii.lg,
@@ -265,6 +271,8 @@ const styles = StyleSheet.create({
   },
   chipText: { color: Colors.charcoal, fontWeight: '700', fontSize: FontSize.sm },
   stack: { gap: 12 },
+  wideGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  full: { width: '100%' },
   emptyNote: {
     color: Colors.whiteSoft,
     fontSize: FontSize.sm,

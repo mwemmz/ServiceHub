@@ -12,10 +12,14 @@ import { useAppLocation } from '@/context/LocationContext';
 import { searchCatalog } from '@/services/catalogService';
 import { searchProviders } from '@/services/providerService';
 import { useAsyncData } from '@/hooks/useAsyncData';
+import { useResponsive } from '@/hooks/useResponsive';
 
 export default function SearchScreen() {
   const router = useRouter();
   const { location } = useAppLocation();
+  const { isWide, columns, colWidth } = useResponsive();
+  const serviceCols = columns([1, 2, 3, 4]);
+  const providerCols = columns([1, 2, 2, 3]);
   const [query, setQuery] = useState('');
   const { data, loading } = useAsyncData(async () => {
     if (!query.trim()) return { services: [], providers: [] };
@@ -39,13 +43,21 @@ export default function SearchScreen() {
         ) : (
           <>
             {data?.services.length ? <Text style={styles.section}>Services</Text> : null}
-            {data?.services.map((service) => (
-              <ServiceCard key={service.id} service={service} onPress={() => router.push(`/(customer)/service/${service.id}`)} />
-            ))}
+            <View style={[styles.grid, isWide && styles.gridWrap]}>
+              {data?.services.map((service) => (
+                <View key={service.id} style={{ width: colWidth(serviceCols), minWidth: 0 }}>
+                  <ServiceCard service={service} onPress={() => router.push(`/(customer)/service/${service.id}`)} />
+                </View>
+              ))}
+            </View>
             {data?.providers.length ? <Text style={styles.section}>Providers</Text> : null}
-            {data?.providers.map((item) => (
-              <ProviderCard key={item.user.id} item={item} onPress={() => router.push(`/(customer)/provider/${item.user.id}`)} />
-            ))}
+            <View style={[styles.grid, isWide && styles.gridWrap]}>
+              {data?.providers.map((item) => (
+                <View key={item.user.id} style={{ width: colWidth(providerCols), minWidth: 0 }}>
+                  <ProviderCard item={item} onPress={() => router.push(`/(customer)/provider/${item.user.id}`)} />
+                </View>
+              ))}
+            </View>
           </>
         )}
       </ScrollView>
@@ -54,6 +66,8 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  list: { padding: 16, gap: 12, paddingBottom: 40 },
+  list: { padding: 16, paddingBottom: 40 },
+  grid: { gap: 12 },
+  gridWrap: { flexDirection: 'row', flexWrap: 'wrap' },
   section: { color: Colors.charcoal, fontSize: FontSize.lg, fontWeight: '800', marginTop: 8 },
 });

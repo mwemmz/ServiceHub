@@ -9,6 +9,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { SearchBar } from '@/components/SearchBar';
 import { Pills, RolePill, formatDate } from '@/components/admin/AdminBits';
 import { Colors, FontSize } from '@/constants/theme';
+import { useResponsive } from '@/hooks/useResponsive';
 import { getUsers, type AdminUser } from '@/services/adminService';
 
 const PAGE_SIZE = 20;
@@ -30,6 +31,8 @@ export default function UsersScreen() {
   const [query, setQuery] = useState('');
   const [search, setSearch] = useState('');
   const [role, setRole] = useState<string | undefined>(undefined);
+  const { columns } = useResponsive();
+  const cols = columns([1, 2, 2, 3]);
 
   useEffect(() => {
     let mounted = true;
@@ -98,6 +101,8 @@ export default function UsersScreen() {
         style={styles.list}
         data={items}
         keyExtractor={(u) => u.id}
+        numColumns={cols}
+        columnWrapperStyle={cols > 1 ? { gap: 12 } : undefined}
         renderItem={({ item }) => <UserRow user={item} />}
         ListHeaderComponent={header}
         onEndReached={onEndReached}

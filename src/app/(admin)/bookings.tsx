@@ -8,6 +8,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Pills, formatDateTime } from '@/components/admin/AdminBits';
 import { Colors, FontSize } from '@/constants/theme';
+import { useResponsive } from '@/hooks/useResponsive';
 import {
   RAW_STATUSES,
   getBookings,
@@ -31,6 +32,8 @@ export default function BookingsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [status, setStatus] = useState<string | undefined>(undefined);
+  const { columns } = useResponsive();
+  const cols = columns([1, 2, 2, 3]);
 
   useEffect(() => {
     let mounted = true;
@@ -88,6 +91,8 @@ export default function BookingsScreen() {
         style={styles.list}
         data={items}
         keyExtractor={(b) => b.id}
+        numColumns={cols}
+        columnWrapperStyle={cols > 1 ? { gap: 12 } : undefined}
         renderItem={({ item }) => <BookingRow booking={item} />}
         ListHeaderComponent={header}
         onEndReached={onEndReached}

@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontSize, Radii, Shadows } from '@/constants/theme';
 import { RegColors } from '@/constants/registrationTheme';
+import { useResponsive } from '@/hooks/useResponsive';
 
 export interface TabItem {
   key: string;
@@ -24,8 +25,49 @@ const CENTER_SLOT = 64;
 
 export function AppTabBar({ items, activeKey, onChange, onCenterPress, centerIcon = 'add' }: Props) {
   const insets = useSafeAreaInsets();
+  const { isWide, contentMaxWidth } = useResponsive();
   const left = items.slice(0, 2);
   const right = items.slice(2);
+
+  if (isWide) {
+    return (
+      <View style={[styles.wideShell, { paddingTop: Math.max(insets.top, 8) }]}>
+        <View style={[styles.wideRow, { maxWidth: contentMaxWidth }]}>
+          {left.map((item) => (
+            <TabButton
+              key={item.key}
+              item={item}
+              active={item.key === activeKey}
+              onPress={() => onChange(item.key)}
+              wide
+            />
+          ))}
+          <Pressable
+            onPress={onCenterPress}
+            style={styles.wideCenter}
+            accessibilityRole="button"
+            accessibilityLabel="More">
+            <LinearGradient
+              colors={['#E8B07A', RegColors.gold, RegColors.goldDeep]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.wideCenterGrad}>
+              <Ionicons name={centerIcon} size={20} color="#FFFFFF" />
+            </LinearGradient>
+          </Pressable>
+          {right.map((item) => (
+            <TabButton
+              key={item.key}
+              item={item}
+              active={item.key === activeKey}
+              onPress={() => onChange(item.key)}
+              wide
+            />
+          ))}
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 8) }]}>
@@ -64,19 +106,36 @@ export function AppTabBar({ items, activeKey, onChange, onCenterPress, centerIco
   );
 }
 
-function TabButton({ item, active, onPress }: { item: TabItem; active: boolean; onPress: () => void }) {
+function TabButton({
+  item,
+  active,
+  onPress,
+  wide = false,
+}: {
+  item: TabItem;
+  active: boolean;
+  onPress: () => void;
+  wide?: boolean;
+}) {
   return (
     <Pressable
       onPress={onPress}
-      style={styles.tab}
+      style={[wide ? styles.tabWide : styles.tab, active && wide && styles.tabWideOn]}
       accessibilityRole="button"
       accessibilityLabel={item.label}>
       <Ionicons
         name={active ? item.activeIcon ?? item.icon : item.icon}
-        size={22}
+        size={wide ? 18 : 22}
         color={active ? Colors.accent : Colors.textLight}
       />
-      <Text style={[styles.label, active && styles.activeLabel]} numberOfLines={1}>
+      <Text
+        style={[
+          styles.label,
+          active && styles.activeLabel,
+          wide && styles.labelWide,
+          wide && active && styles.labelWideOn,
+        ]}
+        numberOfLines={1}>
         {item.label}
       </Text>
     </Pressable>
@@ -129,6 +188,44 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 27,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wideShell: {
+    backgroundColor: 'rgba(10,16,32,0.9)',
+    borderBottomWidth: 1,
+    borderColor: Colors.border,
+    paddingBottom: 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  wideRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  tabWide: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: Radii.full,
+  },
+  tabWideOn: { backgroundColor: Colors.accentSoft },
+  labelWide: { fontSize: FontSize.sm },
+  labelWideOn: { color: Colors.accent },
+  wideCenter: {
+    borderRadius: Radii.full,
+    marginHorizontal: 4,
+    ...Shadows.floating,
+  },
+  wideCenterGrad: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -1,11 +1,13 @@
 import { Redirect, Tabs, useRouter, usePathname } from 'expo-router';
 import { AppTabBar } from '@/components/AppTabBar';
 import { useAuth } from '@/context/AuthContext';
+import { useResponsive } from '@/hooks/useResponsive';
 
 export default function ProviderTabs() {
   const router = useRouter();
   const { providerProfile } = useAuth();
   const pathname = usePathname();
+  const { isWide } = useResponsive();
 
   if (providerProfile && !providerProfile.isSetupComplete && !pathname.includes('setup')) {
     return <Redirect href="/(provider)/setup" />;
@@ -13,7 +15,7 @@ export default function ProviderTabs() {
 
   return (
     <Tabs
-      screenOptions={{ headerShown: false }}
+      screenOptions={{ headerShown: false, tabBarPosition: isWide ? 'top' : 'bottom' }}
       tabBar={({ state, navigation }) => (
         <AppTabBar
           items={[

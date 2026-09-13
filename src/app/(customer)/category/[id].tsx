@@ -10,6 +10,7 @@ import { ErrorState } from '@/components/ErrorState';
 import { EmptyState } from '@/components/EmptyState';
 import { Colors, FontSize } from '@/constants/theme';
 import { useAsyncData } from '@/hooks/useAsyncData';
+import { useResponsive } from '@/hooks/useResponsive';
 import { getCategory, getServicesForCategory } from '@/services/catalogService';
 import type { CategoryId } from '@/types';
 
@@ -17,6 +18,8 @@ export default function CategoryScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: CategoryId }>();
   const [query, setQuery] = useState('');
+  const { isWide, columns, colWidth } = useResponsive();
+  const cols = columns([1, 2, 3, 4]);
   const { data, loading, error, reload } = useAsyncData(async () => {
     const category = await getCategory(id);
     const services = await getServicesForCategory(id);
@@ -60,13 +63,16 @@ export default function CategoryScreen() {
           groups.map(([group, services]) => (
             <View key={group} style={styles.group}>
               <Text style={styles.groupTitle}>{group}</Text>
-              {services.map((service) => (
-                <ServiceCard
-                  key={service.id}
-                  service={service}
-                  onPress={() => router.push(`/(customer)/service/${service.id}`)}
-                />
-              ))}
+              <View style={[styles.services, isWide && styles.servicesWrap]}>
+                {services.map((service) => (
+                  <View key={service.id} style={{ width: colWidth(cols), minWidth: 0 }}>
+                    <ServiceCard
+                      service={service}
+                      onPress={() => router.push(`/(customer)/service/${service.id}`)}
+                    />
+                  </View>
+                ))}
+              </View>
             </View>
           ))
         )}
@@ -78,5 +84,7 @@ export default function CategoryScreen() {
 const styles = StyleSheet.create({
   list: { padding: 16, gap: 16, paddingBottom: 40 },
   group: { gap: 10 },
+  services: { gap: 10 },
+  servicesWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   groupTitle: { color: Colors.charcoal, fontSize: FontSize.lg, fontWeight: '800' },
 });
