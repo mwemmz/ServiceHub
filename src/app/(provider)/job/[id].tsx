@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
@@ -8,9 +9,11 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import { SecondaryButton } from '@/components/SecondaryButton';
 import { LoadingState } from '@/components/LoadingState';
 import { ErrorState } from '@/components/ErrorState';
+import { InputField } from '@/components/InputField';
 import { Colors, FontSize, Radii } from '@/constants/theme';
 import { useAsyncData } from '@/hooks/useAsyncData';
 import { getBookingById, updateBookingStatus } from '@/services/bookingService';
+import { getEndorsementForBooking, requestEndorsement } from '@/services/endorsementService';
 import { getService } from '@/services/catalogService';
 import { getProviderById } from '@/services/providerService';
 import { getUsers } from '@/services/localDb';
@@ -27,27 +30,47 @@ const NEXT: Partial<Record<BookingStatus, { label: string; status: BookingStatus
 export default function ProviderJobScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const [peerEmail, setPeerEmail] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
   const { data, loading, error, reload } = useAsyncData(async () => {
     const booking = await getBookingById(id);
     if (!booking) return null;
-    const [service, users, provider] = await Promise.all([
+    const [service, users, provider, verification] = await Promise.all([
       getService(booking.serviceId),
       getUsers(),
       getProviderById(booking.providerId),
+      getEndorsementForBooking(id),
     ]);
     return {
       booking,
       service,
       customer: users.find((item) => item.id === booking.customerId),
       provider,
+      verification,
     };
   }, [id]);
 
   if (loading && !data) return <LoadingState />;
   if (error || !data?.booking) return <ErrorState message={error ?? 'Job not found.'} onRetry={reload} />;
 
-  const { booking, service, customer, provider } = data;
+  const { booking, service, customer, provider, verification } = data;
   const next = NEXT[booking.status];
+
+  async function onRequestVerification() {
+    if (!peerEmail.trim() || verifying) return;
+    setVerifying(true);
+    setVerifyError('');
+    try {
+      await requestEndorsement(booking.id, peerEmail.trim());
+      setPeerEmail('');
+      await reload();
+    } catch (err) {
+      setVerifyError(err instanceof Error ? err.message : 'Could not send the verification request.');
+    } finally {
+      setVerifying(false);
+    }
+  }
 
   return (
     <Screen scroll>
@@ -71,6 +94,49 @@ export default function ProviderJobScreen() {
           }}
         />
       ) : null}
+
+      {booking.status === 'completed' ? (
+        <View style={[styles.card, styles.verifyCard]}>
+          <Text style={styles.verifyTitle}>Verify this job</Text>
+          {verification?.verified ? (
+            <View style={styles.verifyRow}>
+              <Text style={[styles.verifyStatus, { color: Colors.success }]}>
+                Verified — {verification.customerReviewed ? 'customer review + peer confirmation done.' : 'peer confirmation done.'}
+              </Text>
+              {verification.note ? <Text style={styles.value}>{verification.note}</Text> : null}
+            </View>
+          ) : verification?.status === 'pending' && verification.peerEmail ? (
+            <Text style={styles.verifyStatus}>
+              Waiting for {verification.peerEmail} to confirm. This job counts as verified work history once they do.
+            </Text>
+          ) : (
+            <>
+              <Text style={styles.verifyHint}>
+                Have another worker confirm this job so it counts as verified experience. Enter their account email.
+              </Text>
+              <InputField
+                label="Fellow worker email"
+                value={peerEmail}
+                onChangeText={setPeerEmail}
+                placeholder="worker@example.com"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              {verification?.status === 'declined' ? (
+                <Text style={styles.verifyHint}>The previous request was declined — you can ask someone else.</Text>
+              ) : null}
+              {verifyError ? <Text style={styles.error}>{verifyError}</Text> : null}
+              <PrimaryButton
+                label="Ask a worker to verify"
+                onPress={onRequestVerification}
+                loading={verifying}
+                disabled={verifying}
+              />
+            </>
+          )}
+        </View>
+      ) : null}
+
       <SecondaryButton label="Chat with customer" onPress={() => router.push(`/(provider)/chat/${booking.id}`)} />
       {customer?.phone ? (
         <SecondaryButton label="Call customer" onPress={() => Linking.openURL(`tel:${customer.phone}`)} />
@@ -91,4 +157,10 @@ const styles = StyleSheet.create({
   card: { backgroundColor: Colors.surface, borderRadius: Radii.lg, padding: 16, marginVertical: 14, gap: 4 },
   label: { color: Colors.textMuted, marginTop: 8, fontSize: FontSize.sm },
   value: { color: Colors.charcoal, fontWeight: '700' },
+  verifyCard: { gap: 10 },
+  verifyTitle: { color: Colors.charcoal, fontSize: FontSize.md, fontWeight: '800' },
+  verifyRow: { gap: 6 },
+  verifyStatus: { color: Colors.charcoal, fontWeight: '700', fontSize: FontSize.sm },
+  verifyHint: { color: Colors.textMuted, fontSize: FontSize.sm, lineHeight: 19 },
+  error: { color: Colors.error, fontSize: FontSize.sm },
 });

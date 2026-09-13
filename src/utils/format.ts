@@ -24,6 +24,13 @@ export function formatDateTime(iso: string): string {
   return `${formatDate(iso)} · ${formatTime(iso)}`;
 }
 
+/** Human label for a ~1 km demand-map cell (grid coordinates truncated to 2 dp). */
+export function formatArea(lat: number, lng: number): string {
+  const ns = lat >= 0 ? `${lat.toFixed(2)}°N` : `${Math.abs(Number(lat.toFixed(2)))}°S`;
+  const ew = lng >= 0 ? `${lng.toFixed(2)}°E` : `${Math.abs(Number(lng.toFixed(2)))}°W`;
+  return `${ns} ${ew}`;
+}
+
 export function greetingForNow(): string {
   const hour = new Date().getHours();
   if (hour < 12) return 'Good morning';

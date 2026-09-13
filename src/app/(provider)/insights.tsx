@@ -6,18 +6,20 @@ import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Colors, FontSize } from '@/constants/theme';
 import { useAsyncData } from '@/hooks/useAsyncData';
+import { getOpportunities, type Opportunity } from '@/services/geoService';
 import { getCoverageInsights, getFinancialSummary } from '@/services/insightsService';
 import type { CoverageInsights, FinancialSummary } from '@/types';
-import { formatKwacha } from '@/utils/format';
+import { formatArea, formatKwacha } from '@/utils/format';
 
-/** Features 6 & 7 — financial inclusion + coverage insights for the signed-in provider. */
+/** Features 6, 7 & 9 — financial inclusion, coverage insights and area demand. */
 export default function InsightsScreen() {
   const { data, loading, error, reload } = useAsyncData(async () => {
-    const [financial, coverage] = await Promise.all([
+    const [financial, coverage, opportunities] = await Promise.all([
       getFinancialSummary(),
       getCoverageInsights(),
+      getOpportunities(),
     ]);
-    return { financial, coverage };
+    return { financial, coverage, opportunities };
   });
 
   if (loading && !data) return <LoadingState />;
@@ -38,6 +40,7 @@ export default function InsightsScreen() {
     avgRating: 0,
     activeCrews: 0,
   };
+  const opportunities: Opportunity[] = data?.opportunities ?? [];
 
   return (
     <Screen>
@@ -88,6 +91,26 @@ export default function InsightsScreen() {
       <GlassPanel borderRadius={22} contentStyle={styles.panel}>
         <StatRow label="Average rating" value={coverage.avgRating.toFixed(1)} />
       </GlassPanel>
+
+      <Text style={styles.sectionTitle}>Where demand is highest</Text>
+      {opportunities.length === 0 ? (
+        <Text style={styles.empty}>No shortage areas found yet.</Text>
+      ) : (
+        <View style={styles.list}>
+          {opportunities.slice(0, 10).map((cell, index) => (
+            <GlassPanel key={`${cell.lat}-${cell.lng}-${index}`} borderRadius={18} contentStyle={styles.oppCard}>
+              <View style={styles.oppHead}>
+                <Text style={styles.oppTitle}>{formatArea(cell.lat, cell.lng)}</Text>
+                <Text style={styles.oppGap}>+{cell.gap} jobs</Text>
+              </View>
+              <Text style={styles.oppMeta}>
+                {cell.activeJobs} active {cell.activeJobs === 1 ? 'job' : 'jobs'} · {cell.onlineWorkers} online{' '}
+                {cell.onlineWorkers === 1 ? 'worker' : 'workers'}
+              </Text>
+            </GlassPanel>
+          ))}
+        </View>
+      )}
     </Screen>
   );
 }
@@ -111,4 +134,20 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   rowLabel: { color: Colors.textMuted, fontSize: FontSize.md },
   rowValue: { color: Colors.charcoal, fontSize: FontSize.md, fontWeight: '700' },
+  empty: { color: Colors.textMuted, fontSize: FontSize.sm, marginTop: 6 },
+  list: { gap: 10, marginTop: 10 },
+  oppCard: { padding: 14, gap: 6 },
+  oppHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  oppTitle: { color: Colors.charcoal, fontSize: FontSize.md, fontWeight: '800' },
+  oppGap: {
+    color: Colors.accentDark ?? Colors.accent,
+    fontSize: FontSize.sm,
+    fontWeight: '800',
+    backgroundColor: Colors.accentSoft,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    overflow: 'hidden',
+  },
+  oppMeta: { color: Colors.textMuted, fontSize: FontSize.sm },
 });

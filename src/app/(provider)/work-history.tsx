@@ -27,7 +27,7 @@ export default function WorkHistoryScreen() {
 
   return (
     <Screen>
-      <ScreenHeader title="Work history" subtitle="Confirmed jobs you have completed — proof of verified experience." />
+      <ScreenHeader title="Work history" subtitle="Jobs verified by both the customer and a fellow worker — trusted proof of your experience." />
       <View style={styles.stats}>
         <GlassPanel borderRadius={18} contentStyle={styles.stat}>
           <Text style={styles.statValue}>{summary.confirmedJobs}</Text>
@@ -46,8 +46,8 @@ export default function WorkHistoryScreen() {
       {bookings.length === 0 ? (
         <EmptyState
           icon="checkmark-done-outline"
-          title="No completed jobs yet"
-          message="Once you finish jobs, they appear here as confirmed, verified work history."
+          title="No verified jobs yet"
+          message="Once a customer reviews a job AND a fellow worker confirms it, it appears here as verified work history."
         />
       ) : (
         <View style={styles.list}>

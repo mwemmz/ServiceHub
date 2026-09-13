@@ -36,6 +36,7 @@ export default function ProviderProfile() {
         <ProfileMenuRow icon="star-outline" label="Reviews" onPress={() => open('/(provider)/reviews')} />
         <ProfileMenuRow icon="ribbon-outline" label="Skills passport" onPress={() => open('/(provider)/certifications')} />
         <ProfileMenuRow icon="checkmark-done-outline" label="Work history" onPress={() => open('/(provider)/work-history')} />
+        <ProfileMenuRow icon="shield-checkmark-outline" label="Verify jobs" onPress={() => open('/(provider)/endorsements')} />
         <ProfileMenuRow icon="people-outline" label="My crews" onPress={() => open('/(provider)/crews')} />
         <ProfileMenuRow icon="shield-outline" label="Reports & disputes" onPress={() => open('/(provider)/reports')} />
         <ProfileMenuRow icon="analytics-outline" label="Insights" onPress={() => open('/(provider)/insights')} />
