@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { AppShell } from '@/components/AppShell';
 import { BookingCard } from '@/components/BookingCard';
 import { GlassPanel } from '@/components/GlassPanel';
@@ -10,6 +10,7 @@ import { LoadingState } from '@/components/LoadingState';
 import { Colors, FontSize, Radii } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useAsyncData } from '@/hooks/useAsyncData';
+import { useSocketEvents } from '@/hooks/useSocketEvents';
 import { getBookingsForUser, isActiveStatus } from '@/services/bookingService';
 import { getService } from '@/services/catalogService';
 import { getUsers } from '@/services/localDb';
@@ -30,6 +31,14 @@ export default function CustomerBookings() {
       })),
     );
   }, [user?.id]);
+
+  // Refresh on focus (fallback) and live whenever a provider updates the booking.
+  useFocusEffect(
+    useCallback(() => {
+      reload();
+    }, [reload]),
+  );
+  useSocketEvents(['new-booking', 'booking-status-update'], reload);
 
   if (loading && !data) {
     return (

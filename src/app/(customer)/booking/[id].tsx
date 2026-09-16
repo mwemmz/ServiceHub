@@ -13,6 +13,7 @@ import { ErrorState } from '@/components/ErrorState';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Colors, FontSize, Radii } from '@/constants/theme';
 import { useAsyncData } from '@/hooks/useAsyncData';
+import { useSocketEvents } from '@/hooks/useSocketEvents';
 import { getBookingById, updateBookingStatus } from '@/services/bookingService';
 import { getService } from '@/services/catalogService';
 import { getProviderById } from '@/services/providerService';
@@ -36,6 +37,9 @@ export default function BookingStatusScreen() {
     ]);
     return { booking, service, provider, review };
   }, [id, user?.id]);
+
+  // Live: refresh this screen when the provider changes the status.
+  useSocketEvents('booking-status-update', reload);
 
   if (loading && !data) return <LoadingState />;
   if (error || !data?.booking) return <ErrorState message={error ?? 'Booking not found.'} onRetry={reload} />;

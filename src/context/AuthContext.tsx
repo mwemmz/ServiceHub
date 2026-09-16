@@ -11,6 +11,7 @@ import {
 } from '@/services/authService';
 import { ensureLocalData } from '@/services/localDb';
 import { getProviderById } from '@/services/providerService';
+import { socketService } from '@/services/socketService';
 import type { ProviderProfile, User, UserRole } from '@/types';
 
 interface AuthContextValue {
@@ -56,6 +57,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     refresh().finally(() => setIsReady(true));
   }, [refresh]);
+
+  // Keep the realtime socket in sync with the signed-in session.
+  useEffect(() => {
+    if (user) {
+      socketService.connect().catch(() => undefined);
+    } else {
+      socketService.disconnect();
+    }
+    return () => socketService.disconnect();
+  }, [user?.id]);
 
   const login = useCallback(
     async (emailOrPhone: string, password: string) => {
