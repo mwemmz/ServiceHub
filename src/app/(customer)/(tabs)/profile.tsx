@@ -31,6 +31,7 @@ export default function CustomerProfile() {
       </View>
       <GlassPanel borderRadius={24} contentStyle={styles.panel}>
         <ProfileMenuRow icon="location-outline" label="Saved locations" onPress={() => open('/(customer)/location')} />
+        <ProfileMenuRow icon="bookmark-outline" label="Saved providers" onPress={() => open('/(customer)/saved' as Href)} />
         <ProfileMenuRow icon="calendar-outline" label="Booking history" onPress={() => openTab('bookings')} />
         <ProfileMenuRow icon="notifications-outline" label="Notifications" onPress={() => openTab('notifications')} />
         <ProfileMenuRow icon="card-outline" label="National ID" onPress={() => open('/(customer)/national-id')} />

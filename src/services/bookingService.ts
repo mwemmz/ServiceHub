@@ -225,3 +225,21 @@ export async function updateBookingStatus(
 export function isActiveStatus(status: BookingStatus): boolean {
   return ACTIVE_STATUSES.includes(status);
 }
+
+/**
+ * Re-book a past job: the API clones the provider/service/location into a new
+ * pending booking (same customer). Returns the fresh booking.
+ */
+export async function rebookBooking(bookingId: string, scheduledAt?: string): Promise<Booking> {
+  const bookingTime = scheduledAt ?? new Date(Date.now() + 15 * 60 * 1000).toISOString();
+  const data = await api.post<{ booking?: ApiBooking } | ApiBooking>(
+    `/bookings/${bookingId}/rebook`,
+    { booking_time: bookingTime },
+  );
+  const item =
+    data && typeof data === 'object' && 'booking' in data
+      ? (data as { booking?: ApiBooking }).booking
+      : (data as ApiBooking);
+  if (!item?.id) throw new Error('Failed to re-book.');
+  return mapBooking(item);
+}

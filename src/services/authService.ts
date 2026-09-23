@@ -141,24 +141,34 @@ export async function register(input: RegisterInput): Promise<{ user: User; veri
 }
 
 /** Live backend does not require email OTP; keep UI path working. */
-export async function verifyAccount(email: string, _code: string): Promise<User> {
-  const cached = await getCachedUser();
-  if (cached && cached.email.toLowerCase() === email.trim().toLowerCase()) {
-    return cached;
-  }
+export async function verifyAccount(email: string, code: string): Promise<User> {
+  await api.post<{ message?: string }>('/auth/verify-email', { code }, false);
   const user = await getCurrentUser();
-  if (!user) throw new Error('Please sign in again after registering.');
+  if (!user) throw new Error('Email verified. Please sign in to continue.');
   return user;
 }
 
-export async function requestPasswordReset(_email: string): Promise<string> {
-  throw new Error(
-    'Password reset is not available on the live API yet. Ask the backend owner to enable it, or contact support.',
-  );
+/**
+ * Ask the backend for a fresh verification code. The live API emails a
+ * 6-digit code; in development it also echoes it so the demo can prefill.
+ */
+export async function requestVerificationCode(): Promise<{ code?: string; message?: string }> {
+  const data = await api.post<{ code?: string; message?: string }>('/auth/resend-verification', {});
+  return data ?? {};
 }
 
-export async function resetPassword(_email: string, _code: string, _newPassword: string): Promise<void> {
-  throw new Error('Password reset is not available on the live API yet.');
+export async function requestPasswordReset(email: string): Promise<string> {
+  const data = await api.post<{ resetToken?: string; message?: string }>(
+    '/auth/forgot-password',
+    { email },
+    false,
+  );
+  // Development builds echo the reset token so the demo does not depend on SMTP.
+  return data?.resetToken ?? '';
+}
+
+export async function resetPassword(email: string, code: string, newPassword: string): Promise<void> {
+  await api.post('/auth/reset-password', { token: code, newPassword }, false);
 }
 
 export async function logout(): Promise<void> {

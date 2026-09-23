@@ -70,7 +70,7 @@ export default function ResetPasswordScreen() {
       <GlassPanel borderRadius={24} contentStyle={styles.form}>
         {params.code ? (
           <View style={styles.notice}>
-            <Text style={styles.noticeTitle}>Local demo code</Text>
+            <Text style={styles.noticeTitle}>Reset code</Text>
             <Text style={styles.noticeBody}>
               Use this code for {params.email}: {params.code}
             </Text>

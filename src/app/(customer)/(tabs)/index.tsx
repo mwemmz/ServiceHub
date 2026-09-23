@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,8 +9,10 @@ import { BackButton } from '@/components/BackButton';
 import { CategoryCard } from '@/components/CategoryCard';
 import { LocationHeader } from '@/components/LocationHeader';
 import { SearchBar } from '@/components/SearchBar';
-import { ProviderCard } from '@/components/ProviderCard';
 import { BookingCard } from '@/components/BookingCard';
+import { RatingStars } from '@/components/RatingStars';
+import { PrimaryButton } from '@/components/PrimaryButton';
+import { SecondaryButton } from '@/components/SecondaryButton';
 import { LoadingState } from '@/components/LoadingState';
 import { ErrorState } from '@/components/ErrorState';
 import { Colors, FontSize, Radii, Spacing, Tracking } from '@/constants/theme';
@@ -18,10 +21,10 @@ import { useAppLocation } from '@/context/LocationContext';
 import { useAsyncData } from '@/hooks/useAsyncData';
 import { useResponsive } from '@/hooks/useResponsive';
 import { getCategories, getPopularServices, getService } from '@/services/catalogService';
-import { getNearbyProviders } from '@/services/providerService';
+import { getNearbyProviders, type ProviderListItem } from '@/services/providerService';
 import { getBookingsForUser } from '@/services/bookingService';
 import { getUsers } from '@/services/localDb';
-import { firstName, greetingForNow, isActiveBooking } from '@/utils/format';
+import { firstName, isActiveBooking } from '@/utils/format';
 
 const TAB_BAR_CLEARANCE = 96;
 
@@ -30,6 +33,7 @@ export default function CustomerHome() {
   const { user } = useAuth();
   const { location } = useAppLocation();
   const { isWide, colWidth } = useResponsive();
+  const [previewProvider, setPreviewProvider] = useState<ProviderListItem | null>(null);
 
   const { data, loading, error, reload } = useAsyncData(async () => {
     const [categories, popular, providers, bookings, users] = await Promise.all([
@@ -70,12 +74,15 @@ export default function CustomerHome() {
   return (
     <AppShell edges={['top']} contentStyle={{ paddingBottom: TAB_BAR_CLEARANCE }}>
       <BackButton fallbackHref={'/(customer)/categories' as Href} />
-      {/* Header — single row, location gets remaining space */}
+      {/* Header — Greeting Header: Avatar top-left + Hello [Name], Notification / Chat top-right */}
       <View style={styles.header}>
-        <Pressable style={styles.menuBtn} accessibilityLabel="Menu">
-          <Ionicons name="menu-outline" size={24} color={Colors.charcoal} />
-        </Pressable>
-        <LocationHeader location={location} onPress={() => router.push('/(customer)/location')} />
+        <View style={styles.headerLeft}>
+          <Avatar name={user?.fullName ?? 'You'} size={42} />
+          <View>
+            <Text style={styles.greetingTitle}>Hello, {displayName} 👋</Text>
+            <LocationHeader location={location} onPress={() => router.push('/(customer)/location')} />
+          </View>
+        </View>
         <View style={styles.headerActions}>
           <Pressable
             onPress={() => router.push('/(customer)/(tabs)/notifications')}
@@ -83,14 +90,22 @@ export default function CustomerHome() {
             accessibilityLabel="Notifications">
             <Ionicons name="notifications-outline" size={22} color={Colors.charcoal} />
           </Pressable>
-          <Avatar name={user?.fullName ?? 'You'} uri={user?.avatarUri} size={38} />
+          <Pressable
+            onPress={() => {
+              const first = data.recentWithNames[0];
+              if (first) {
+                router.push(`/(customer)/chat/${first.booking.id}` as Href);
+              } else {
+                router.push('/(customer)/(tabs)/bookings' as Href);
+              }
+            }}
+            style={styles.iconBtn}
+            accessibilityLabel="Chat">
+            <Ionicons name="chatbubble-ellipses-outline" size={22} color={Colors.charcoal} />
+          </Pressable>
         </View>
       </View>
 
-      {/* Greeting */}
-      <Text style={styles.hello} numberOfLines={2}>
-        {greetingForNow()}, {displayName}!
-      </Text>
       <Text style={styles.sub}>What would you like help with today?</Text>
 
       <View style={styles.searchWrap}>
@@ -103,10 +118,12 @@ export default function CustomerHome() {
         />
       </View>
 
-      {/* Categories — full-width rows so text doesn't break */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Choose a category</Text>
-        <Text style={styles.sectionSub}>Select a service category to get started.</Text>
+      {/* Categories — Service Categories with See All */}
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionTitle}>Service Categories</Text>
+        <Pressable onPress={() => router.push('/(customer)/categories' as Href)}>
+          <Text style={styles.seeAllText}>See All</Text>
+        </Pressable>
       </View>
       <View style={[styles.catList, isWide && styles.catGrid]}>
         {data.categories.map((category) => (
@@ -147,16 +164,26 @@ export default function CustomerHome() {
         ))}
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{location ? 'Nearby providers' : 'Popular providers'}</Text>
+      {/* Recommended Professionals with See All in 2-column grid */}
+      <View style={styles.sectionHeaderRowWithMargin}>
+        <Text style={styles.sectionTitle}>Recommended Professionals</Text>
+        <Pressable onPress={() => router.push('/(customer)/providers' as Href)}>
+          <Text style={styles.seeAllText}>See All</Text>
+        </Pressable>
       </View>
-      <View style={[styles.stack, isWide && styles.wideGrid]}>
+      <View style={styles.grid2Col}>
         {data.providers.map((item) => (
-          <View key={item.user.id} style={isWide ? { width: colWidth(2), minWidth: 0 } : styles.full}>
-            <ProviderCard
-              item={item}
-              onPress={() => router.push(`/(customer)/provider/${item.user.id}`)}
-            />
+          <View key={item.user.id} style={styles.gridCardWrapper}>
+            <Pressable
+              onPress={() => setPreviewProvider(item)}
+              style={({ pressed }) => [pressed && { opacity: 0.92 }]}>
+              <View style={styles.proCard}>
+                <Avatar name={item.user.fullName} size={64} />
+                <Text style={styles.proName} numberOfLines={1}>{item.user.fullName}</Text>
+                <Text style={styles.proService} numberOfLines={1}>{item.profile.serviceArea}</Text>
+                <RatingStars rating={item.profile.rating} count={item.profile.reviewCount} />
+              </View>
+            </Pressable>
           </View>
         ))}
       </View>
@@ -179,6 +206,30 @@ export default function CustomerHome() {
           ))
         )}
       </View>
+
+      {/* Quick-Preview Floating Card Modal Overlay */}
+      {previewProvider && (
+        <View style={styles.previewOverlay}>
+          <Pressable style={styles.backdrop} onPress={() => setPreviewProvider(null)} />
+          <View style={styles.previewCard}>
+            <Avatar name={previewProvider.user.fullName} size={80} />
+            <Text style={styles.previewTitle}>{previewProvider.user.fullName}</Text>
+            <Text style={styles.previewSubtitle}>{previewProvider.profile.serviceArea}</Text>
+            <RatingStars rating={previewProvider.profile.rating} count={previewProvider.profile.reviewCount} />
+            <View style={styles.previewActions}>
+              <PrimaryButton
+                label="View Profile"
+                onPress={() => {
+                  const id = previewProvider.user.id;
+                  setPreviewProvider(null);
+                  router.push(`/(customer)/provider/${id}`);
+                }}
+              />
+              <SecondaryButton label="Close" onPress={() => setPreviewProvider(null)} />
+            </View>
+          </View>
+        </View>
+      )}
     </AppShell>
   );
 }
@@ -187,14 +238,18 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
     marginBottom: Spacing.md,
   },
-  menuBtn: {
-    width: 36,
+  headerLeft: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
+    gap: 12,
+  },
+  greetingTitle: {
+    color: Colors.charcoal,
+    fontSize: FontSize.lg,
+    fontWeight: '800',
   },
   headerActions: {
     flexDirection: 'row',
@@ -203,32 +258,47 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   iconBtn: {
-    width: 36,
-    height: 36,
+    width: 38,
+    height: 38,
+    borderRadius: Radii.pill,
+    backgroundColor: 'rgba(255,255,255,0.7)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  hello: {
-    color: Colors.charcoal,
-    fontSize: FontSize.xxl,
-    fontWeight: '800',
-    lineHeight: 34,
-    letterSpacing: Tracking.displayTight,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   sub: {
     color: Colors.whiteSoft,
     fontSize: FontSize.md,
     lineHeight: 22,
-    marginTop: 4,
     marginBottom: Spacing.md,
   },
   searchWrap: { marginBottom: Spacing.lg },
   section: { marginTop: Spacing.lg, marginBottom: Spacing.sm },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  sectionHeaderRowWithMargin: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.sm,
+  },
   sectionTitle: {
     color: Colors.charcoal,
     fontSize: FontSize.lg,
     fontWeight: '800',
     letterSpacing: Tracking.section,
+  },
+  seeAllText: {
+    color: Colors.accent,
+    fontSize: FontSize.sm,
+    fontWeight: '700',
   },
   sectionSub: {
     color: Colors.whiteSoft,
@@ -272,6 +342,45 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   chipText: { color: Colors.charcoal, fontWeight: '700', fontSize: FontSize.sm },
+  grid2Col: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  gridCardWrapper: {
+    width: '48%',
+    minWidth: 150,
+    flexGrow: 1,
+  },
+  proCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radii.lg,
+    padding: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  proAvatar: {
+    borderRadius: Radii.md,
+  },
+  proName: {
+    color: Colors.charcoal,
+    fontSize: FontSize.md,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  proService: {
+    color: Colors.textMuted,
+    fontSize: FontSize.xs,
+    textAlign: 'center',
+    marginBottom: 2,
+  },
   stack: { gap: 12 },
   wideGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   full: { width: '100%' },
@@ -279,5 +388,57 @@ const styles = StyleSheet.create({
     color: Colors.whiteSoft,
     fontSize: FontSize.sm,
     lineHeight: 20,
+  },
+  previewOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  previewCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radii.xl,
+    padding: 24,
+    width: '100%',
+    maxWidth: 320,
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  previewTitle: {
+    color: Colors.charcoal,
+    fontSize: FontSize.lg,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  previewSubtitle: {
+    color: Colors.textMuted,
+    fontSize: FontSize.sm,
+    textAlign: 'center',
+    marginTop: -4,
+  },
+  previewActions: {
+    width: '100%',
+    gap: 8,
+    marginTop: 8,
   },
 });

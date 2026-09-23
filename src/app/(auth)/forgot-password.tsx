@@ -41,7 +41,7 @@ export default function ForgotPasswordScreen() {
     <Screen keyboard>
       <ScreenHeader
         title="Forgot password"
-        subtitle="We will generate a local reset code until email is connected."
+        subtitle="We will email you a reset code."
         fallbackHref={'/(auth)/welcome' as import('expo-router').Href}
       />
       <GlassPanel borderRadius={24} contentStyle={styles.form}>
@@ -60,7 +60,7 @@ export default function ForgotPasswordScreen() {
         />
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <PrimaryButton label="Send reset code" onPress={onSubmit} loading={loading} />
-        <Text style={styles.hint}>A real email will be sent after a backend is connected.</Text>
+        <Text style={styles.hint}>The code arrives by email. In development it is also shown on the next screen.</Text>
       </GlassPanel>
     </Screen>
   );

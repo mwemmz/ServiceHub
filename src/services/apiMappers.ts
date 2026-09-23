@@ -63,7 +63,9 @@ export function toApiBookingStatus(status: BookingStatus): string {
     case 'accepted':
       return 'accepted';
     case 'on_the_way':
+      return 'on-the-way';
     case 'arrived':
+      return 'arrived';
     case 'in_progress':
       return 'in-progress';
     case 'completed':

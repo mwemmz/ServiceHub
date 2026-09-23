@@ -54,6 +54,8 @@ export const StorageKeys = {
   reviews: 'servicehub.reviews',
   notifications: 'servicehub.notifications',
   messages: 'servicehub.messages',
+  favourites: 'servicehub.favourites',
+  conversations: 'servicehub.conversations',
   payments: 'servicehub.payments',
   session: 'servicehub.session',
   accessToken: 'servicehub.accessToken',

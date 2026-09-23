@@ -4,7 +4,46 @@ import { api } from '@/services/apiClient';
 import { geoFromLatLng, guessCategoryId } from '@/services/apiMappers';
 import { getService } from '@/services/catalogService';
 import { distanceKm } from '@/utils/geo';
-import type { CategoryId, GeoLocation, ProviderProfile, ProviderSort, User } from '@/types';
+import type { AvailabilitySlot, CategoryId, GeoLocation, ProviderProfile, ProviderSort, User } from '@/types';
+
+/** Backend working_hours format: { "monday": [{ "start": "08:00", "end": "17:00" }], ... } */
+type WorkingHours = Record<string, Array<{ start: string; end: string }>>;
+
+const DAY_TO_BACKEND: Record<AvailabilitySlot['day'], string> = {
+  mon: 'monday',
+  tue: 'tuesday',
+  wed: 'wednesday',
+  thu: 'thursday',
+  fri: 'friday',
+  sat: 'saturday',
+  sun: 'sunday',
+};
+
+/** Convert the mobile availability list into the backend working_hours JSONB shape. */
+function toWorkingHours(availability: AvailabilitySlot[]): WorkingHours {
+  const out: WorkingHours = {};
+  for (const slot of availability) {
+    if (!slot.enabled || !slot.start || !slot.end) continue;
+    out[DAY_TO_BACKEND[slot.day]] = [{ start: slot.start, end: slot.end }];
+  }
+  return out;
+}
+
+/** Read backend working_hours back into the mobile availability list. */
+function fromWorkingHours(workingHours?: WorkingHours | null): AvailabilitySlot[] {
+  return WEEKLY_AVAILABILITY.map((slot) => {
+    const ranges = workingHours?.[DAY_TO_BACKEND[slot.day]];
+    if (!Array.isArray(ranges) || ranges.length === 0) {
+      return { ...slot, enabled: false };
+    }
+    return {
+      ...slot,
+      enabled: true,
+      start: ranges[0]?.start || slot.start,
+      end: ranges[0]?.end || slot.end,
+    };
+  });
+}
 
 export interface ProviderListItem {
   user: User;
@@ -26,6 +65,7 @@ interface ApiProvider {
   location_lat?: number;
   location_lng?: number;
   service_radius?: number;
+  working_hours?: WorkingHours | null;
   user?: {
     id?: string;
     name?: string;
@@ -71,7 +111,7 @@ function mapProvider(item: ApiProvider): ProviderListItem {
     })),
     serviceArea: item.category || 'Service area',
     location: geoFromLatLng(item.location_lat, item.location_lng),
-    availability: WEEKLY_AVAILABILITY,
+    availability: fromWorkingHours(item.working_hours),
     rating: Number(item.rating ?? 0),
     reviewCount: 0,
     completedJobs: 0,
@@ -251,6 +291,7 @@ export async function saveProviderProfile(profile: ProviderProfile): Promise<voi
       location_lat: profile.location.latitude,
       location_lng: profile.location.longitude,
       service_radius: 15,
+      working_hours: toWorkingHours(profile.availability),
     });
   } catch {
     const { getProviderProfiles, saveProviderProfiles } = await import('@/services/localDb');

@@ -6,8 +6,10 @@ import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { InputField } from '@/components/InputField';
 import { PrimaryButton } from '@/components/PrimaryButton';
+import { SecondaryButton } from '@/components/SecondaryButton';
 import { Colors, FontSize, Radii } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
+import { requestVerificationCode } from '@/services/authService';
 
 export default function VerifyScreen() {
   const router = useRouter();
@@ -15,7 +17,26 @@ export default function VerifyScreen() {
   const params = useLocalSearchParams<{ email?: string; code?: string; role?: string }>();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [prefillCode, setPrefillCode] = useState(
+    typeof params.code === 'string' && params.code.length >= 6 ? params.code : '',
+  );
+
+  async function resend() {
+    if (!params.email || sending) return;
+    setSending(true);
+    setError('');
+    try {
+      const result = await requestVerificationCode();
+      if (result?.code) setPrefillCode(result.code);
+      else setError(result?.message ?? 'Verification email sent. Check your inbox.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not resend the code.');
+    } finally {
+      setSending(false);
+    }
+  }
 
   async function onSubmit() {
     if (!params.email || loading) return;
@@ -46,15 +67,15 @@ export default function VerifyScreen() {
     <Screen keyboard>
       <ScreenHeader
         title="Verify your account"
-        subtitle="Enter the 6-digit code for your email."
+        subtitle="Enter the 6-digit code we emailed you."
         fallbackHref={'/(auth)/login' as import('expo-router').Href}
       />
       <GlassPanel borderRadius={24} contentStyle={styles.form}>
-        {params.code ? (
+        {prefillCode ? (
           <View style={styles.notice}>
-            <Text style={styles.noticeTitle}>Local demo code</Text>
+            <Text style={styles.noticeTitle}>Demo code</Text>
             <Text style={styles.noticeBody}>
-              Email delivery is not connected yet. Use this code for {params.email}: {params.code}
+              Use this code for {params.email}: {prefillCode}
             </Text>
           </View>
         ) : null}
@@ -68,6 +89,7 @@ export default function VerifyScreen() {
         />
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <PrimaryButton label="Verify" onPress={onSubmit} loading={loading} disabled={code.length < 6} />
+        <SecondaryButton label={sending ? 'Sending…' : 'Resend code'} onPress={resend} disabled={sending} />
       </GlassPanel>
     </Screen>
   );

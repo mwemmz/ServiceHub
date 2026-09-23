@@ -9,6 +9,7 @@ import { LoadingState } from '@/components/LoadingState';
 import { Colors, FontSize, Radii } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useAsyncData } from '@/hooks/useAsyncData';
+import { useSocketEvents } from '@/hooks/useSocketEvents';
 import { getMessages, sendMessage } from '@/services/messageService';
 import { formatTime } from '@/utils/format';
 
@@ -18,9 +19,13 @@ export default function ChatScreen() {
   const [text, setText] = useState('');
   const { data, loading, reload } = useAsyncData(() => getMessages(bookingId), [bookingId]);
 
+  // Live: refresh whenever the other party sends a message.
+  useSocketEvents('message:new', reload);
+
   async function send() {
-    if (!text.trim() || !user) return;
-    await sendMessage(bookingId, user.id, text);
+    const trimmed = text.trim();
+    if (!trimmed || !user) return;
+    await sendMessage(bookingId, user.id, trimmed);
     setText('');
     reload();
   }
@@ -30,7 +35,7 @@ export default function ChatScreen() {
   return (
     <Screen padded={false}>
       <View style={{ paddingHorizontal: 16 }}>
-        <ScreenHeader title="Chat" subtitle="Local messages only until a realtime backend is connected." />
+        <ScreenHeader title="Chat" subtitle="Messages sync live with the other party." />
       </View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <FlatList
