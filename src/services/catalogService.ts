@@ -29,6 +29,13 @@ interface ApiService {
   provider_id?: string;
 }
 
+/** Local demo catalog ids are short slugs (e.g. "repair-plumbing"); backend ids are UUIDs. */
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isBackendUuid(id: string): boolean {
+  return UUID_PATTERN.test(id);
+}
+
 function styleForCategory(id: CategoryId): Pick<Category, 'accent' | 'background' | 'icon' | 'shortName' | 'description'> {
   const local = getCategoryById(id);
   if (local) {
@@ -112,12 +119,14 @@ export async function getServices(): Promise<Service[]> {
 }
 
 export async function getService(id: string): Promise<Service | undefined> {
-  try {
-    const data = await api.get<{ service?: ApiService } | ApiService>(`/services/${id}`, undefined, false);
-    const item = data && typeof data === 'object' && 'service' in data ? (data as { service?: ApiService }).service : (data as ApiService);
-    if (item?.id) return mapApiService(item);
-  } catch {
-    // fall through
+  if (isBackendUuid(id)) {
+    try {
+      const data = await api.get<{ service?: ApiService } | ApiService>(`/services/${id}`, undefined, false);
+      const item = data && typeof data === 'object' && 'service' in data ? (data as { service?: ApiService }).service : (data as ApiService);
+      if (item?.id) return mapApiService(item);
+    } catch {
+      // fall through
+    }
   }
   return getServiceById(id);
 }
@@ -146,7 +155,27 @@ export async function searchCatalog(query: string): Promise<Service[]> {
   return AppConfig.useLocalCatalogFallback ? searchServices(term) : [];
 }
 
-export function getPopularServices(): Service[] {
+/**
+ * Popular services for the home screen. Prefers live backend services (real
+ * UUIDs usable by the API); falls back to the local demo catalog only when the
+ * backend has none or is unreachable.
+ */
+export async function getPopularServices(): Promise<Service[]> {
+  try {
+    const data = await api.get<{ services?: ApiService[] } | ApiService[]>('/services', undefined, false);
+    const list = Array.isArray(data) ? data : data.services ?? [];
+    if (list.length > 0) {
+      // Deterministic pick: highest price first, capped at 8 popular entries.
+      return list
+        .slice()
+        .sort((a, b) => Number(b.price ?? 0) - Number(a.price ?? 0))
+        .slice(0, 8)
+        .map(mapApiService);
+    }
+  } catch {
+    // fall through to local demo catalog
+  }
+  if (!AppConfig.useLocalCatalogFallback) return [];
   const popularIds = [
     'beauty-haircuts',
     'beauty-braiding',

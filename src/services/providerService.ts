@@ -2,7 +2,7 @@ import { WEEKLY_AVAILABILITY } from '@/data/seed';
 import { AppConfig } from '@/constants/config';
 import { api } from '@/services/apiClient';
 import { geoFromLatLng, guessCategoryId } from '@/services/apiMappers';
-import { getService } from '@/services/catalogService';
+import { getService, isBackendUuid } from '@/services/catalogService';
 import { distanceKm } from '@/utils/geo';
 import type { AvailabilitySlot, CategoryId, GeoLocation, ProviderProfile, ProviderSort, User } from '@/types';
 
@@ -149,15 +149,17 @@ export async function getProviders(): Promise<ProviderListItem[]> {
 }
 
 export async function getProviderById(userId: string): Promise<ProviderListItem | undefined> {
-  try {
-    const data = await api.get<{ provider?: ApiProvider } | ApiProvider>(`/providers/${userId}`, undefined, false);
-    const item =
-      data && typeof data === 'object' && 'provider' in data
-        ? (data as { provider?: ApiProvider }).provider
-        : (data as ApiProvider);
-    if (item?.id || item?.user_id) return mapProvider(item);
-  } catch {
-    // Skip listing every provider — that extra remote call left registration stuck on Loading.
+  if (isBackendUuid(userId)) {
+    try {
+      const data = await api.get<{ provider?: ApiProvider } | ApiProvider>(`/providers/${userId}`, undefined, false);
+      const item =
+        data && typeof data === 'object' && 'provider' in data
+          ? (data as { provider?: ApiProvider }).provider
+          : (data as ApiProvider);
+      if (item?.id || item?.user_id) return mapProvider(item);
+    } catch {
+      // Skip listing every provider — that extra remote call left registration stuck on Loading.
+    }
   }
   if (!AppConfig.useLocalCatalogFallback) return undefined;
   const { getProviderProfiles, getUsers, ensureLocalData } = await import('@/services/localDb');

@@ -38,7 +38,7 @@ export default function CustomerHome() {
   const { data, loading, error, reload } = useAsyncData(async () => {
     const [categories, popular, providers, bookings, users] = await Promise.all([
       getCategories(),
-      Promise.resolve(getPopularServices()),
+      getPopularServices(),
       getNearbyProviders(location),
       getBookingsForUser(user!.id, 'customer'),
       getUsers(),

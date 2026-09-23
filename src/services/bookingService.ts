@@ -1,6 +1,6 @@
 import { api } from '@/services/apiClient';
 import { geoFromLatLng, mapApiBookingStatus, toApiBookingStatus } from '@/services/apiMappers';
-import { getService } from '@/services/catalogService';
+import { getService, isBackendUuid } from '@/services/catalogService';
 import { calculatePrice } from '@/utils/format';
 import type { Booking, BookingStatus, GeoLocation, WorkHistorySummary } from '@/types';
 
@@ -95,15 +95,17 @@ export async function getBookings(): Promise<Booking[]> {
 }
 
 export async function getBookingById(id: string): Promise<Booking | undefined> {
-  try {
-    const data = await api.get<{ booking?: ApiBooking } | ApiBooking>(`/bookings/${id}`);
-    const item =
-      data && typeof data === 'object' && 'booking' in data
-        ? (data as { booking?: ApiBooking }).booking
-        : (data as ApiBooking);
-    if (item?.id) return mapBooking(item);
-  } catch {
-    // fall through
+  if (isBackendUuid(id)) {
+    try {
+      const data = await api.get<{ booking?: ApiBooking } | ApiBooking>(`/bookings/${id}`);
+      const item =
+        data && typeof data === 'object' && 'booking' in data
+          ? (data as { booking?: ApiBooking }).booking
+          : (data as ApiBooking);
+      if (item?.id) return mapBooking(item);
+    } catch {
+      // fall through
+    }
   }
   const all = await getBookings();
   return all.find((item) => item.id === id);
@@ -140,27 +142,28 @@ export async function getWorkHistory(userId: string): Promise<WorkHistoryResult>
 
 export async function createBooking(input: CreateBookingInput): Promise<Booking> {
   const service = await getService(input.serviceId);
-  try {
-    const data = await api.post<{ booking?: ApiBooking } | ApiBooking>('/bookings', {
-      provider_id: input.providerId,
-      service_id: input.serviceId,
-      booking_time: input.scheduledAt,
-      address: input.location.address,
-      notes: input.notes,
-      location_lat: input.location.latitude,
-      location_lng: input.location.longitude,
-      crew_id: input.crewId || undefined,
-    });
-    const item =
-      data && typeof data === 'object' && 'booking' in data
-        ? (data as { booking?: ApiBooking }).booking
-        : (data as ApiBooking);
-    if (item?.id) return mapBooking(item);
-  } catch (err) {
-    // If provider/service IDs are local mock IDs, API will fail — keep local booking so UI flow works.
-    const message = err instanceof Error ? err.message : '';
-    if (!/not found|invalid|foreign|uuid/i.test(message) && service) {
-      // still try local below
+  // Only real backend bookings (UUID provider + service) go to the API. Local
+  // demo ids like "repair-plumbing"/"pending_match" stay in local storage so we
+  // never spray garbage ids at the live backend.
+  if (isBackendUuid(input.providerId) && isBackendUuid(input.serviceId)) {
+    try {
+      const data = await api.post<{ booking?: ApiBooking } | ApiBooking>('/bookings', {
+        provider_id: input.providerId,
+        service_id: input.serviceId,
+        booking_time: input.scheduledAt,
+        address: input.location.address,
+        notes: input.notes,
+        location_lat: input.location.latitude,
+        location_lng: input.location.longitude,
+        crew_id: input.crewId || undefined,
+      });
+      const item =
+        data && typeof data === 'object' && 'booking' in data
+          ? (data as { booking?: ApiBooking }).booking
+          : (data as ApiBooking);
+      if (item?.id) return mapBooking(item);
+    } catch {
+      // fall through to local storage below
     }
   }
 
@@ -190,7 +193,8 @@ export async function updateBookingStatus(
   status: BookingStatus,
   cancelReason?: string,
 ): Promise<Booking> {
-  if (status === 'cancelled') {
+  const apiBooking = isBackendUuid(bookingId);
+  if (status === 'cancelled' && apiBooking) {
     try {
       await api.put(`/bookings/${bookingId}/cancel`, { reason: cancelReason });
       const updated = await getBookingById(bookingId);
@@ -198,7 +202,7 @@ export async function updateBookingStatus(
     } catch {
       // fall through
     }
-  } else {
+  } else if (apiBooking) {
     try {
       await api.put(`/bookings/${bookingId}/status`, { status: toApiBookingStatus(status) });
       const updated = await getBookingById(bookingId);
@@ -231,6 +235,9 @@ export function isActiveStatus(status: BookingStatus): boolean {
  * pending booking (same customer). Returns the fresh booking.
  */
 export async function rebookBooking(bookingId: string, scheduledAt?: string): Promise<Booking> {
+  if (!isBackendUuid(bookingId)) {
+    throw new Error('This demo booking was created locally and cannot be re-booked through the API.');
+  }
   const bookingTime = scheduledAt ?? new Date(Date.now() + 15 * 60 * 1000).toISOString();
   const data = await api.post<{ booking?: ApiBooking } | ApiBooking>(
     `/bookings/${bookingId}/rebook`,
