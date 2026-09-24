@@ -147,8 +147,12 @@ export async function createBooking(input: CreateBookingInput): Promise<Booking>
   // never spray garbage ids at the live backend.
   if (isBackendUuid(input.providerId) && isBackendUuid(input.serviceId)) {
     try {
+      const { getBackendProviderId } = await import('@/services/backendProviders');
+      // The app identifies providers by user UUID, but POST /bookings requires
+      // the provider *profile* UUID — resolve it (idempotent for both id forms).
+      const resolvedProviderId = (await getBackendProviderId(input.providerId)) ?? input.providerId;
       const data = await api.post<{ booking?: ApiBooking } | ApiBooking>('/bookings', {
-        provider_id: input.providerId,
+        provider_id: resolvedProviderId,
         service_id: input.serviceId,
         booking_time: input.scheduledAt,
         address: input.location.address,
