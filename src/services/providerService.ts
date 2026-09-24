@@ -178,11 +178,7 @@ export async function getProvidersForService(
 ): Promise<ProviderListItem[]> {
   const providers = await getProviders();
   const matched = providers
-    .filter(
-      (item) =>
-        item.profile.services.some((service) => service.serviceId === serviceId) ||
-        item.profile.services.length === 0,
-    )
+    .filter((item) => item.profile.services.some((service) => service.serviceId === serviceId))
     .map((item) => {
       const offer = item.profile.services.find((service) => service.serviceId === serviceId);
       const distance = origin ? distanceKm(origin, item.profile.location) : undefined;
