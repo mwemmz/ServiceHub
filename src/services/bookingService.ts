@@ -162,8 +162,12 @@ export async function createBooking(input: CreateBookingInput): Promise<Booking>
           ? (data as { booking?: ApiBooking }).booking
           : (data as ApiBooking);
       if (item?.id) return mapBooking(item);
-    } catch {
-      // fall through to local storage below
+    } catch (err) {
+      throw new Error(
+        err instanceof Error && err.message
+          ? err.message
+          : 'Could not reach the server. Please check your connection and try again.',
+      );
     }
   }
 
