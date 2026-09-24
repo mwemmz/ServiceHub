@@ -107,6 +107,23 @@ async function parseError(res: Response): Promise<ApiError> {
   return new ApiError(message, res.status, fieldErrors);
 }
 
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/** Transient failures (throttled, busy, cold-start) worth retrying with backoff. */
+const TRANSIENT_STATUSES = new Set([408, 429, 502, 503, 504]);
+
+/** Only blind-retry these on network errors; POST/PATCH can otherwise double-apply. */
+const IDEMPOTENT_METHODS = new Set<HttpMethod>(['GET', 'PUT', 'DELETE']);
+
+const MAX_TRANSIENT_RETRIES = 3;
+
+function retryDelayMs(attempt: number, retryAfterSeconds?: number): number {
+  if (retryAfterSeconds && Number.isFinite(retryAfterSeconds)) {
+    return Math.min(retryAfterSeconds * 1000, 30000);
+  }
+  return Math.min(1500 * 2 ** attempt, 15000);
+}
+
 export async function apiRequest<T>(
   path: string,
   options: {
@@ -116,6 +133,7 @@ export async function apiRequest<T>(
     auth?: boolean;
     retry?: boolean;
   } = {},
+  transientRetriesLeft: number = MAX_TRANSIENT_RETRIES,
 ): Promise<T> {
   const { method = 'GET', body, query, auth = true, retry = true } = options;
   const headers: Record<string, string> = { Accept: 'application/json' };
@@ -141,6 +159,11 @@ export async function apiRequest<T>(
     const aborted =
       (err instanceof Error && err.name === 'AbortError') ||
       (typeof err === 'object' && err !== null && 'name' in err && (err as { name: string }).name === 'AbortError');
+    if (retry && transientRetriesLeft > 0 && (IDEMPOTENT_METHODS.has(method) || !aborted)) {
+      const attempt = MAX_TRANSIENT_RETRIES - transientRetriesLeft;
+      await sleep(retryDelayMs(attempt));
+      return apiRequest<T>(path, options, transientRetriesLeft - 1);
+    }
     throw new ApiError(
       aborted
         ? 'The server is taking too long to respond. Please try again.'
@@ -158,6 +181,13 @@ export async function apiRequest<T>(
     }
     await clearTokens();
     throw new ApiError('Session expired. Please sign in again.', 401);
+  }
+
+  if (retry && transientRetriesLeft > 0 && TRANSIENT_STATUSES.has(res.status)) {
+    const attempt = MAX_TRANSIENT_RETRIES - transientRetriesLeft;
+    const retryAfter = Number(res.headers.get('Retry-After') ?? NaN);
+    await sleep(retryDelayMs(attempt, Number.isNaN(retryAfter) ? undefined : retryAfter));
+    return apiRequest<T>(path, options, transientRetriesLeft - 1);
   }
 
   if (!res.ok) throw await parseError(res);
