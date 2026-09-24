@@ -203,16 +203,24 @@ export async function updateBookingStatus(
       await api.put(`/bookings/${bookingId}/cancel`, { reason: cancelReason });
       const updated = await getBookingById(bookingId);
       if (updated) return updated;
-    } catch {
-      // fall through
+    } catch (err) {
+      throw new Error(
+        err instanceof Error && err.message
+          ? err.message
+          : 'Could not update the booking. Please check your connection and try again.',
+      );
     }
   } else if (apiBooking) {
     try {
       await api.put(`/bookings/${bookingId}/status`, { status: toApiBookingStatus(status) });
       const updated = await getBookingById(bookingId);
       if (updated) return { ...updated, status };
-    } catch {
-      // fall through
+    } catch (err) {
+      throw new Error(
+        err instanceof Error && err.message
+          ? err.message
+          : 'Could not update the booking. Please check your connection and try again.',
+      );
     }
   }
 
