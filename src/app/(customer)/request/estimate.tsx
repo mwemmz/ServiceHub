@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
@@ -9,6 +9,7 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import { Colors, FontSize } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { createBooking } from '@/services/bookingService';
+import { ApiError } from '@/services/apiClient';
 import { getNearbyProviders, getProvidersForService } from '@/services/providerService';
 import { getServiceRequestDraft } from '@/services/serviceRequestDraft';
 import { useServiceRequestDraftReady } from '@/hooks/useServiceRequestDraftReady';
@@ -24,6 +25,7 @@ export default function EstimateScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [nearestKm, setNearestKm] = useState<number | null>(null);
+  const submittingRef = useRef(false);
 
   const price = useMemo(
     () => calculatePrice(draft?.startingPrice ?? 0),
@@ -48,7 +50,8 @@ export default function EstimateScreen() {
   }, [draftReady, router]);
 
   async function onRequest() {
-    if (!user || !draft?.location || loading) return;
+    if (!user || !draft?.location || loading || submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setError('');
     try {
@@ -56,19 +59,34 @@ export default function EstimateScreen() {
       const nearby = providers[0] ?? (await getNearbyProviders(draft.location, draft.categoryId))[0];
       const providerId = nearby?.user.id ?? 'pending_match';
 
-      const booking = await createBooking({
-        customerId: user.id,
-        providerId,
-        serviceId: draft.serviceId,
-        scheduledAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-        notes: `Service request: ${draft.serviceName}`,
-        location: draft.location,
-      });
+      // Retry with the next free hour slot when the first attempt conflicts with an
+      // existing booking on the same provider (409) instead of failing the request.
+      let booking;
+      for (let attempt = 0; attempt < 6; attempt++) {
+        const scheduledAt = new Date(
+          Date.now() + (60 + attempt * 60) * 60 * 1000,
+        ).toISOString();
+        try {
+          booking = await createBooking({
+            customerId: user.id,
+            providerId,
+            serviceId: draft.serviceId,
+            scheduledAt,
+            notes: `Service request: ${draft.serviceName}`,
+            location: draft.location,
+          });
+          break;
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 409 && attempt < 5) continue;
+          throw err;
+        }
+      }
 
-      router.replace(`/(customer)/request/finding?bookingId=${booking.id}` as Href);
+      router.replace(`/(customer)/request/finding?bookingId=${booking!.id}` as Href);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create the service request.');
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }

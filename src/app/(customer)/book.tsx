@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
@@ -47,6 +47,7 @@ export default function BookScreen() {
   const when = draft.providerId === providerId && draft.serviceId === serviceId ? draft.when : defaultWhen;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const submittingRef = useRef(false);
 
   const { data, loading: pageLoading, error: pageError, reload } = useAsyncData(async () => {
     const [provider, service] = await Promise.all([getProviderById(providerId), getService(serviceId)]);
@@ -62,11 +63,12 @@ export default function BookScreen() {
   const price = calculatePrice(data.offer?.price ?? data.service.startingPrice);
 
   async function confirm() {
-    if (loading) return;
     if (!location) {
       setError('Please set your location before booking.');
       return;
     }
+    if (loading || submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setError('');
     try {
@@ -83,6 +85,7 @@ export default function BookScreen() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create booking.');
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }

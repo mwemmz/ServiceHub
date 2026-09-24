@@ -1,4 +1,4 @@
-import { api } from '@/services/apiClient';
+import { api, ApiError } from '@/services/apiClient';
 import { geoFromLatLng, mapApiBookingStatus, toApiBookingStatus } from '@/services/apiMappers';
 import { getService, isBackendUuid } from '@/services/catalogService';
 import { calculatePrice } from '@/utils/format';
@@ -167,6 +167,7 @@ export async function createBooking(input: CreateBookingInput): Promise<Booking>
           : (data as ApiBooking);
       if (item?.id) return mapBooking(item);
     } catch (err) {
+      if (err instanceof ApiError) throw err;
       throw new Error(
         err instanceof Error && err.message
           ? err.message
