@@ -69,7 +69,10 @@ export default function RequestServicesScreen() {
   const visibleGroups = useMemo(() => {
     if (id !== 'beauty' || !beautyBranch) return orderedGroups;
     const target = beautyBranch === 'salon' ? SALON_GROUP : BARBER_GROUP;
-    return orderedGroups.filter((g) => g.group === target);
+    const matched = orderedGroups.filter((g) => g.group === target);
+    // Live backend services use the flat category name (e.g. "Beauty"), so the
+    // salon/barber branch group may not exist — show all groups rather than blank.
+    return matched.length > 0 ? matched : orderedGroups;
   }, [orderedGroups, id, beautyBranch]);
 
   if (!services) {
