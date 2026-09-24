@@ -1,6 +1,6 @@
 import { Alert, Linking, StyleSheet, Text, View } from 'react-native';
-import { useState } from 'react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
@@ -44,6 +44,21 @@ export default function BookingStatusScreen() {
 
   // Live: refresh this screen when the provider changes the status.
   useSocketEvents('booking-status-update', reload);
+
+  // Fallback when the socket is throttled/offline: refetch on every focus and
+  // poll every 15s while the booking is still in a live status so the customer
+  // never stays stuck showing a stale "pending" state.
+  useFocusEffect(
+    useCallback(() => {
+      reload();
+      const timer = setInterval(() => {
+        const status = data?.booking?.status;
+        if (status && ['completed', 'cancelled'].includes(status)) return;
+        reload();
+      }, 15000);
+      return () => clearInterval(timer);
+    }, [reload, data?.booking?.status]),
+  );
 
   if (loading && !data) return <LoadingState />;
   if (error || !data?.booking) return <ErrorState message={error ?? 'Booking not found.'} onRetry={reload} />;

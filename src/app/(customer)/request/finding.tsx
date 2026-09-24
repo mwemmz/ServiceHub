@@ -44,7 +44,7 @@ export default function FindingProviderScreen() {
 
       <GlassPanel borderRadius={24} contentStyle={styles.panel}>
         <Text style={styles.cardTitle}>Request status</Text>
-        <Text style={styles.status}>Pending</Text>
+        <Text style={styles.status}>Waiting for a provider</Text>
         <Text style={styles.cardBody}>
           Providers near you can accept this request. You will see booking details next.
         </Text>
